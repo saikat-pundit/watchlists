@@ -16,9 +16,21 @@ data = response.json()
 # Convert to simple list
 records = []
 for item in data['data']:
-    advances = item.get('advances', 0)
-    declines = item.get('declines', 0)
-    unchanged = item.get('unchanged', 0)
+    # Convert to integers, default to 0 if conversion fails
+    try:
+        advances = int(item.get('advances', 0))
+    except (ValueError, TypeError):
+        advances = 0
+    
+    try:
+        declines = int(item.get('declines', 0))
+    except (ValueError, TypeError):
+        declines = 0
+    
+    try:
+        unchanged = int(item.get('unchanged', 0))
+    except (ValueError, TypeError):
+        unchanged = 0
     
     # Calculate Advances/Declines ratio
     # Avoid division by zero - if declines is 0, handle it appropriately
