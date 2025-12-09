@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-import json
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
@@ -23,16 +22,15 @@ for item in data['data']:
             percent_change_str = ""
         
         records.append({
-            'Index Name': symbol,
+            'Symbol': symbol,
             'Last': item.get('lastPrice'),
             'Change': item.get('change'),
             '% Change': percent_change_str,
             'Previous Close': item.get('previousClose'),
-            'PE': "",  
             'Year High': item.get('yearHigh'),
             'Year Low': item.get('yearLow')
         })
 
 df = pd.DataFrame(records)
-df.to_csv('nifty50stock_top10.csv', index=False)
+df.to_csv('nifty50_stocks_top10.csv', index=False)
 print("CSV created successfully!")
