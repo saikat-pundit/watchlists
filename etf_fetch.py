@@ -97,18 +97,18 @@ for symbol in target_symbols:
 
 # Add timestamp row at the end
 ist = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(ist).strftime('%d-%b-%Y %H:%M:%S')
+current_time = datetime.now(ist).strftime('%d-%b %H:%M')
 
 # Add Update Time row with time in the last column
 records.append({
-    'SYMBOL': ':',
+    'SYMBOL': '',
     'ASSETS': '',
     'LAST': '',
     'CHANGE': '',
     '%CHANGE': '',
     'PREVIOUS CLOSE': '',
     '52w High': 'Update Time',
-    '52w Low': current_time  # Time in the last column
+    '52w Low': current_time
 })
 
 # Create DataFrame and save to CSV
