@@ -1,0 +1,38 @@
+name: Update Global Data
+
+on:
+  schedule:
+    # Runs at 10:30 AM, 2:30 PM, and 4:30 PM IST (Monday-Friday)
+    - cron: '30 5,10,11 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'  # Automatic pip caching
+      
+      - name: Install dependencies from requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt  # Uses cached packages
+      
+      - name: Run global data script
+        run: python global_data.py
+        id: run-script
+      
+      - name: Show output file
+        run: |
+          echo "CSV file created:"
+          head -5 GLOBAL_DATA.csv
+          echo "..."
+          tail -3 GLOBAL_DATA.csv
