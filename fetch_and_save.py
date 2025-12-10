@@ -151,14 +151,14 @@ current_time = datetime.now(ist).strftime('%d-%b-%Y %H:%M:%S')
 
 # Add timestamp as last row with proper formatting
 records.append({
-    'Index Name': 'Updated Time:',
-    'Last': current_time,
+    'Index Name': '',
+    'Last': '',
     'Change': '',
     '% Change': '',
     'Previous Close': '',
     'Adv/Dec Ratio': '',
-    'Year High': '',
-    'Year Low': ''
+    'Year High': 'Updated Time:',
+    'Year Low': current_time
 })
 
 df = pd.DataFrame(records)
