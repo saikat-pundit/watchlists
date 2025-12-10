@@ -22,7 +22,7 @@ jobs:
         run: pip install yfinance pandas
     
       - name: Run market data script
-        run: python market_data.py
+        run: python fetch_market_data.py
     
       - name: Commit and push if changed
         run: |
