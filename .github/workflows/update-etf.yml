@@ -1,0 +1,39 @@
+# .github/workflows/update-etf.yml
+name: Daily ETF Data Update
+
+on:
+  schedule:
+    # Runs at 9:30 AM, 11:30 AM, 2:30 PM, and 4:00 PM IST (Monday-Friday)
+    # UTC equivalents: 04:00, 06:00, 09:00, 10:30
+    - cron: '0 4,6,9,10 * * 1-5'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  update-etf-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pandas requests pytz
+
+      - name: Run ETF data script
+        run: python etf_fetch.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add etf.csv
+          # Check if there are changes to commit
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update ETF data $(date +'%d-%b-%Y %H:%M')"
+          git push
