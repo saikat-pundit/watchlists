@@ -3,19 +3,18 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # Ticker mapping with descriptive names
+# Most reliable - INDEXES ONLY (no futures)
 TICKERS = {
-    "US30 Futures": "YM=F",           # Dow Jones Futures
-    "US500 Futures": "ES=F",          # S&P 500 Futures
-    "NASDAQ100 Futures": "NQ=F",      # NASDAQ 100 Futures
-    "USA VIX": "^VIX",                # Volatility Index
-    "US10Y Govt Bond": "^TNX",        # 10-Year Treasury Yield
-    "Nikkei Futures": "NKD=F",        # Nikkei 225 Futures
-    "Euro Stoxx Futures": "ESTX50",   # Euro Stoxx 50
-    "FTSE Futures": "Z=F",            # FTSE 100 Futures
-    "Gold": "GC=F",                   # COMEX Gold Futures
-    "Comex Gold": "GC=F",             # Same as Gold
-    "Silver": "SI=F",                 # COMEX Silver Futures
-    "Comex Silver Futures": "SI=F"    # Same as Silver
+    "Dow Jones": "^DJI",              # Dow Jones Industrial Average
+    "S&P 500": "^GSPC",               # S&P 500 Index
+    "NASDAQ 100": "^NDX",             # NASDAQ 100 Index
+    "VIX": "^VIX",                    # Volatility Index
+    "US 10-Year Yield": "^TNX",       # 10-Year Treasury Yield
+    "Nikkei 225": "^N225",            # Nikkei 225 Index
+    "Euro Stoxx 50": "^STOXX50E",     # Euro Stoxx 50 Index
+    "FTSE 100": "^FTSE",              # FTSE 100 Index
+    "Gold ETF": "GLD",                # SPDR Gold Shares ETF
+    "Silver ETF": "SLV",               # iShares Silver Trust ETF
 }
 
 def fetch_global_data():
