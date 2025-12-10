@@ -34,8 +34,12 @@ def fetch_global_data():
         last = df["Close"].iloc[-1]
         prev = df["Close"].iloc[-2]
 
-        change = last - prev
-        percent = (change / prev * 100) if prev else 0
+        # Compute change
+        change = data["Close"] - prev
+
+        # Compute percent (safe for Series)
+        percent = (change / prev) * 100
+        percent = percent.fillna(0)
 
         # Year high/low using longer period
         yearly = yf.download(ticker, period="1y", interval="1d", progress=False)
