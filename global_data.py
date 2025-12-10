@@ -1,8 +1,8 @@
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
-import time
 
+# Most reliable INDEX version for GitHub Actions
 TICKERS = {
     "Dow Jones": "^DJI",
     "S&P 500": "^GSPC", 
@@ -16,74 +16,55 @@ TICKERS = {
     "Silver ETF": "SLV"
 }
 
-def safe_history(ticker_obj, period):
-    for attempt in range(3):
-        try:
-            return ticker_obj.history(period=period, backend="scraper")
-        except Exception as e:
-            print(f"  Retry {attempt+1}/3 ... ({e})")
-            time.sleep(2)
-    return None
-
 def fetch_global_data():
-    print("Fetching global market data...")
-    print("="*60)
-    
+    print("Fetching global data...\n")
+
     records = []
 
     for name, ticker in TICKERS.items():
         print(f"Fetching {name} ({ticker})...")
 
-        ticker_obj = yf.Ticker(ticker)
+        # MOST STABLE METHOD FOR GITHUB ACTIONS
+        df = yf.download(ticker, period="5d", interval="1d", progress=False)
 
-        hist = safe_history(ticker_obj, "1mo")
-        
-        if hist is None or hist.empty or len(hist) < 2:
-            print(f"  ⚠️  No data for {name}")
+        if df.empty or len(df) < 2:
+            print(f"  ⚠️ No data for {name}")
             continue
 
-        latest = hist.iloc[-1]
-        previous = hist.iloc[-2]
+        last = df["Close"].iloc[-1]
+        prev = df["Close"].iloc[-2]
 
-        last_price = latest["Close"]
-        prev_close = previous["Close"]
+        change = last - prev
+        percent = (change / prev * 100) if prev else 0
 
-        change = last_price - prev_close
-        percent_change = (change / prev_close * 100) if prev_close else 0
-
-        year_data = safe_history(ticker_obj, "1y")
-        year_high = year_data["High"].max() if year_data is not None else last_price
-        year_low  = year_data["Low"].min() if year_data is not None else last_price
+        # Year high/low using longer period
+        yearly = yf.download(ticker, period="1y", interval="1d", progress=False)
+        high = yearly["High"].max() if not yearly.empty else last
+        low = yearly["Low"].min() if not yearly.empty else last
 
         records.append({
             "Index Name": name,
-            "Last": round(last_price, 2),
+            "Last": round(last, 2),
+            "Previous Close": round(prev, 2),
             "Change": round(change, 2),
-            "% Change": f"{percent_change:+.2f}%",
-            "Previous Close": round(prev_close, 2),
-            "Year High": round(year_high, 2),
-            "Year Low": round(year_low, 2),
+            "% Change": f"{percent:+.2f}%",
+            "Year High": round(high, 2),
+            "Year Low": round(low, 2)
         })
 
-        print(f"  ✅ ${last_price:.2f} ({percent_change:+.2f}%)")
+        print(f"  ✓ {last:.2f} ({percent:+.2f}%)")
 
+    # Save result
     if not records:
-        print("‼️ Error: No data received!")
-        return None
+        print("\n‼️ ERROR: No data fetched!")
+        return
 
-    df = pd.DataFrame(records)
+    df_out = pd.DataFrame(records)
     filename = "GLOBAL_DATA.csv"
-    df.to_csv(filename, index=False)
+    df_out.to_csv(filename, index=False)
 
-    timestamp = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
-    with open(filename, "a") as f:
-        f.write(f"Update Time:,,,,,{timestamp}\n")
-
-    print(f"\n✅ Data saved to {filename}")
-    print(f"📊 {len(records)} instruments processed")
-    print(f"🕐 Updated: {timestamp}")
-
-    return df
+    timestamp = datetime.now().strftime("%d-%b-%Y %H:%M")
+    print(f"\nSaved to {filename} at {timestamp}")
 
 if __name__ == "__main__":
     fetch_global_data()
