@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
+import pytz
 
 # Tickers
 TICKERS = {
@@ -68,11 +69,12 @@ def fetch_global_data():
     df_out.to_csv(filename, index=False)
     
     # Add timestamp row
-    timestamp = datetime.now().strftime("%d-%b %H:%M")
+    ist = pytz.timezone('Asia/Kolkata')
+    timestamp = datetime.now(ist).strftime("%d-%b %H:%M")
     with open(filename, 'a') as f:
         f.write(f',,,,,,Update Time:,{timestamp}\n')
     
-    timestamp = datetime.now().strftime("%d-%b-%Y %H:%M")
+    timestamp = datetime.now(ist).strftime("%d-%b-%Y %H:%M")
     print(f"\nSaved to {filename} at {timestamp}")
 
 if __name__ == "__main__":
