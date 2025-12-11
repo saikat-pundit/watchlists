@@ -1,4 +1,4 @@
-name: NIFTY50_TOP10
+name: Indices+TOP10+ETFs
 
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
         run: |
           python fetch_and_save.py
           python nifty50_top10.py
-
+          run: python etf_fetch.py
       - name: Commit and push if changed
         run: |
           git config user.name "GitHub Action"
