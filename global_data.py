@@ -70,7 +70,7 @@ def fetch_global_data():
     # Add timestamp row
     timestamp = datetime.now().strftime("%d-%b %H:%M")
     with open(filename, 'a') as f:
-        f.write(,,,,f'Update Time:,{timestamp}\n')
+        f.write(f',,,,,,Update Time:,{timestamp}\n')
     
     timestamp = datetime.now().strftime("%d-%b-%Y %H:%M")
     print(f"\nSaved to {filename} at {timestamp}")
