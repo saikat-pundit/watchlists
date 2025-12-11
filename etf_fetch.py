@@ -110,7 +110,7 @@ records.append({
     '52w High': 'Update Time',
     '52w Low': current_time
 })
-
+os.makedirs('../Data', exist_ok=True)
 # Create DataFrame and save to CSV
 df = pd.DataFrame(records)
 df.to_csv('../Data/etf.csv', index=False)
