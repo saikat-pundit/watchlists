@@ -2,7 +2,7 @@ name: Indices+TOP10+ETFs
 
 on:
   schedule:
-    - cron: '*/30 2-8 * * 1-5'
+    - cron: '*/15 2-8 * * 1-5'
   workflow_dispatch:
 
 jobs:
