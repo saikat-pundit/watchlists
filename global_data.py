@@ -50,10 +50,10 @@ def fetch_global_data():
 
         records.append({
             "Index Name": name,
-            "Last": round(last, 2),
-            "Previous Close": round(prev, 2),
+            "Last": round(last, 2),            
             "Change": round(change, 2),
             "% Change": f"{percent:+.2f}%",
+            "Previous Close": round(prev, 2),
             "Year High": round(high, 2),
             "Year Low": round(low, 2),
         })
