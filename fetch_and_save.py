@@ -8,22 +8,29 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
 }
 
-# FIRST API: Fetch all indices data
+# FIRST API: Fetch all indices data from NSE
 url_indices = "https://www.nseindia.com/api/allIndices"
 response_indices = requests.get(url_indices, headers=headers)
 data_indices = response_indices.json()
 
-# SECOND API: Fetch market status data
+# SECOND API: Fetch market status data from NSE
 url_market = "https://www.nseindia.com/api/marketStatus"
 response_market = requests.get(url_market, headers=headers)
 data_market = response_market.json()
 
-# Target indices list including GIFT-NIFTY and USDINR
+# THIRD API: Fetch commodity data from Money Control
+url_commodities = "https://priceapi.moneycontrol.com/technicalCompanyData/commodity/getMajorCommodities?tabName=SPOT&deviceType=W"
+response_commodities = requests.get(url_commodities, headers=headers)
+data_commodities = response_commodities.json()
+
+# Target indices list including GIFT-NIFTY and USD/INR
 target_indices = [
     "NIFTY 50",
     "INDIA VIX",
     "GIFT-NIFTY",
     "USD/INR",
+    "GOLD",
+    "SILVER",
     "NIFTY 10 YR BENCHMARK G-SEC",
     "NIFTY NEXT 50",
     "NIFTY MIDCAP SELECT",
@@ -52,7 +59,7 @@ target_indices = [
 
 index_dict = {}
 
-# Process all indices data
+# Process all indices data from NSE
 for item in data_indices['data']:
     index_name = item.get('index')
     
@@ -112,7 +119,7 @@ if 'giftnifty' in data_market:
         'Year Low': '-'
     }
 
-# Add USDINR data
+# Add USD/INR data
 for item in data_market['marketState']:
     if item.get('market') == 'currencyfuture':
         index_dict['USD/INR'] = {
@@ -126,6 +133,35 @@ for item in data_market['marketState']:
             'Year Low': '-'
         }
         break
+
+# Add GOLD and SILVER data from Money Control API
+if 'data' in data_commodities and 'list' in data_commodities['data']:
+    for commodity in data_commodities['data']['list']:
+        symbol = commodity.get('symbol')
+        
+        if symbol in ['GOLD', 'SILVER']:
+            try:
+                last_price = float(commodity.get('lastPrice', 0))
+                price_change = float(commodity.get('priceChange', 0))
+                price_change_percentage = commodity.get('priceChangePercentage', '0')
+                
+                # Calculate previous close using formula: previousClose = lastPrice - priceChange
+                previous_close = last_price - price_change
+                
+                # For year high/low, use current price (no historical data available)
+                index_dict[symbol] = {
+                    'Index Name': symbol,
+                    'Last': last_price,
+                    'Change': price_change,
+                    '% Change': f"{price_change_percentage}%",
+                    'Previous Close': round(previous_close, 2),
+                    'Adv/Dec Ratio': '-',
+                    'Year High': '-',
+                    'Year Low': '-'  
+                }
+            except (ValueError, TypeError) as e:
+                print(f"Error processing {symbol}: {e}")
+                continue
 
 # Create records in the specified order
 records = []
