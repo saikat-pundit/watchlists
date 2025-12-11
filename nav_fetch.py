@@ -33,7 +33,7 @@ for fund in data['data']:
                 'Fund NAV': nav['hNAV_Amt'],
                 'Update Time': nav['hNAV_Upload_display']
             })
-
+os.makedirs('../Data', exist_ok=True)
 df = pd.DataFrame(records)
 df.to_csv('../Data/Daily_NAV.csv', index=False)
 print(f"CSV created successfully for date: {target_date_str}!")
