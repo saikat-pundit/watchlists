@@ -196,7 +196,7 @@ records.append({
     'Year High': 'Updated Time:',
     'Year Low': current_time
 })
-
+os.makedirs('../Data', exist_ok=True)
 df = pd.DataFrame(records)
 df.to_csv('../Data/nse_all_indices.csv', index=False)
 print("CSV created successfully!")
