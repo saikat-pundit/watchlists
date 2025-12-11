@@ -63,10 +63,15 @@ def fetch_global_data():
         print("\n‼️ ERROR: No data fetched!")
         return
 
-    df_out = pd.DataFrame(records)
+        df_out = pd.DataFrame(records)
     filename = "GLOBAL_DATA.csv"
     df_out.to_csv(filename, index=False)
-
+    
+    # Add timestamp row
+    timestamp = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
+    with open(filename, 'a') as f:
+        f.write(,,,,f'Update Time:,{timestamp}\n')
+    
     timestamp = datetime.now().strftime("%d-%b-%Y %H:%M")
     print(f"\nSaved to {filename} at {timestamp}")
 
