@@ -33,6 +33,6 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add nse_all_indices.csv nifty50_stocks_top10.csv etf.csv GLOBAL_DATA.csv
+          git add Data/nse_all_indices.csv Data/nifty50_stocks_top10.csv Data/etf.csv Data/GLOBAL_DATA.csv
           git commit -m "Auto update $(date)" || exit 0
           git push
