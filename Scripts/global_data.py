@@ -50,13 +50,13 @@ def fetch_global_data():
         low = float(yearly["Low"].min()) if not yearly.empty else last
 
         records.append({
-            "Index Name": name,
-            "Last": round(last, 2),
-            "Previous Close": round(prev, 2),
-            "Change": round(change, 2),
-            "% Change": f"{percent:+.2f}%",
-            "Year High": round(high, 2),
-            "Year Low": round(low, 2),
+            "Index": name,
+            "LTP": round(last, 2),
+            "Previous": round(prev, 2),
+            "Chng": round(change, 2),
+            "% Chng": f"{percent:+.2f}%",
+            "Yr Hi": round(high, 2),
+            "Yr Lo": round(low, 2),
         })
 
         print(f"  ✓ {last:.2f} ({percent:+.2f}%)")
