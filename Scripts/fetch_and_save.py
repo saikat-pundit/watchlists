@@ -118,7 +118,7 @@ for item in data_indices['data']:
             percent_change_str = "-"
         
         index_dict[index_name] = {
-            'Index Name': index_name,
+            'Index': index_name,
             'Last': item.get('last'),
             'Change': item.get('variation'),
             '% Change': percent_change_str,
@@ -169,7 +169,7 @@ if 'indices' in data_gift_nifty:
         percent_change_str = "-"
     
     index_dict['GIFT-NIFTY'] = {
-        'Index Name': 'GIFT-NIFTY',
+        'Index': 'GIFT-NIFTY',
         'Last': lastprice,
         'Change': change,
         '% Change': percent_change_str,
@@ -183,7 +183,7 @@ if 'indices' in data_gift_nifty:
 for item in data_market['marketState']:
     if item.get('market') == 'currencyfuture':
         index_dict['USD/INR'] = {
-            'Index Name': 'USD/INR',
+            'Index': 'USD/INR',
             'Last': item.get('last', '-'),
             'Change': '-',
             '% Change': '-',
@@ -212,7 +212,7 @@ if data_ind_5y.get('code') == '200' and 'data' in data_ind_5y:
         percent_change_str = "-"
     
     index_dict['IND 5Y'] = {
-        'Index Name': 'IND 5Y',
+        'Index': 'IND 5Y',
         'Last': current_price,
         'Change': net_change,
         '% Change': percent_change_str,
@@ -240,7 +240,7 @@ if data_ind_10y.get('code') == '200' and 'data' in data_ind_10y:
         percent_change_str = "-"
     
     index_dict['IND 10Y'] = {
-        'Index Name': 'IND 10Y',
+        'Index': 'IND 10Y',
         'Last': current_price,
         'Change': net_change,
         '% Change': percent_change_str,
@@ -268,7 +268,7 @@ if data_ind_30y.get('code') == '200' and 'data' in data_ind_30y:
         percent_change_str = "-"
     
     index_dict['IND 30Y'] = {
-        'Index Name': 'IND 30Y',
+        'Index': 'IND 30Y',
         'Last': current_price,
         'Change': net_change,
         '% Change': percent_change_str,
@@ -294,7 +294,7 @@ if 'data' in data_commodities and 'list' in data_commodities['data']:
                 
                 # For year high/low, use current price (no historical data available)
                 index_dict[symbol] = {
-                    'Index Name': symbol,
+                    'Index': symbol,
                     'Last': last_price,
                     'Change': price_change,
                     '% Change': f"{price_change_percentage}%",
@@ -315,7 +315,7 @@ for index_name in target_indices:
     else:
         # Create empty entry for missing indices
         records.append({
-            'Index Name': index_name,
+            'Index': index_name,
             'Last': '-',
             'Change': '-',
             '% Change': '-',
@@ -331,7 +331,7 @@ current_time = datetime.now(ist).strftime('%d-%b %H:%M')
 
 # Add timestamp as last row with proper formatting
 records.append({
-    'Index Name': '',
+    'Index': '',
     'Last': '',
     'Change': '',
     '% Change': '',
