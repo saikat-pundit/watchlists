@@ -29,7 +29,22 @@ url_gift_nifty = "https://appfeeds.moneycontrol.com/jsonapi/market/indices&forma
 response_gift_nifty = requests.get(url_gift_nifty, headers=headers)
 data_gift_nifty = response_gift_nifty.json()
 
-# Target indices list including GIFT-NIFTY and USD/INR
+# FIFTH API: Fetch IND 5Y bond data
+url_ind_5y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND5Y:IND"
+response_ind_5y = requests.get(url_ind_5y, headers=headers)
+data_ind_5y = response_ind_5y.json()
+
+# SIXTH API: Fetch IND 10Y bond data
+url_ind_10y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND10YR:IND"
+response_ind_10y = requests.get(url_ind_10y, headers=headers)
+data_ind_10y = response_ind_10y.json()
+
+# SEVENTH API: Fetch IND 30Y bond data
+url_ind_30y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND30Y:IND"
+response_ind_30y = requests.get(url_ind_30y, headers=headers)
+data_ind_30y = response_ind_30y.json()
+
+# Target indices list including bonds
 target_indices = [
     "NIFTY 50",
     "INDIA VIX",
@@ -37,7 +52,9 @@ target_indices = [
     "USD/INR",
     "GOLD",
     "SILVER",
-    "NIFTY 10 YR BENCHMARK G-SEC",
+    "IND 5Y",
+    "IND 10Y",
+    "IND 30Y",
     "NIFTY NEXT 50",
     "NIFTY MIDCAP SELECT",
     "NIFTY MIDCAP 50",
@@ -155,6 +172,90 @@ for item in data_market['marketState']:
         }
         break
 
+# Process IND 5Y bond data
+if data_ind_5y.get('code') == '200' and 'data' in data_ind_5y:
+    bond_data = data_ind_5y['data']
+    
+    current_price = bond_data.get('current_price', '-')
+    net_change = bond_data.get('net_change', '-')
+    percent_change = bond_data.get('percent_change', '-')
+    prev_close = bond_data.get('prev_close', '-')
+    wk_high = bond_data.get('52wkHigh', '-')
+    wk_low = bond_data.get('52wkLow', '-')
+    
+    # Format percentage change
+    if percent_change != '-':
+        percent_change_str = f"{percent_change}%"
+    else:
+        percent_change_str = "-"
+    
+    index_dict['IND 5Y'] = {
+        'Index Name': 'IND 5Y',
+        'Last': current_price,
+        'Change': net_change,
+        '% Change': percent_change_str,
+        'Previous Close': prev_close,
+        'Adv/Dec Ratio': '-',
+        'Year High': wk_high,
+        'Year Low': wk_low
+    }
+
+# Process IND 10Y bond data
+if data_ind_10y.get('code') == '200' and 'data' in data_ind_10y:
+    bond_data = data_ind_10y['data']
+    
+    current_price = bond_data.get('current_price', '-')
+    net_change = bond_data.get('net_change', '-')
+    percent_change = bond_data.get('percent_change', '-')
+    prev_close = bond_data.get('prev_close', '-')
+    wk_high = bond_data.get('52wkHigh', '-')
+    wk_low = bond_data.get('52wkLow', '-')
+    
+    # Format percentage change
+    if percent_change != '-':
+        percent_change_str = f"{percent_change}%"
+    else:
+        percent_change_str = "-"
+    
+    index_dict['IND 10Y'] = {
+        'Index Name': 'IND 10Y',
+        'Last': current_price,
+        'Change': net_change,
+        '% Change': percent_change_str,
+        'Previous Close': prev_close,
+        'Adv/Dec Ratio': '-',
+        'Year High': wk_high,
+        'Year Low': wk_low
+    }
+
+# Process IND 30Y bond data
+if data_ind_30y.get('code') == '200' and 'data' in data_ind_30y:
+    bond_data = data_ind_30y['data']
+    
+    current_price = bond_data.get('current_price', '-')
+    net_change = bond_data.get('net_change', '-')
+    percent_change = bond_data.get('percent_change', '-')
+    prev_close = bond_data.get('prev_close', '-')
+    wk_high = bond_data.get('52wkHigh', '-')
+    wk_low = bond_data.get('52wkLow', '-')
+    
+    # Format percentage change
+    if percent_change != '-':
+        percent_change_str = f"{percent_change}%"
+    else:
+        percent_change_str = "-"
+    
+    index_dict['IND 30Y'] = {
+        'Index Name': 'IND 30Y',
+        'Last': current_price,
+        'Change': net_change,
+        '% Change': percent_change_str,
+        'Previous Close': prev_close,
+        'Adv/Dec Ratio': '-',
+        'Year High': wk_high,
+        'Year Low': wk_low
+    }
+
 # Add GOLD and SILVER data from Money Control API
 if 'data' in data_commodities and 'list' in data_commodities['data']:
     for commodity in data_commodities['data']['list']:
@@ -223,3 +324,4 @@ os.makedirs('Data', exist_ok=True)
 df = pd.DataFrame(records)
 df.to_csv('Data/nse_all_indices.csv', index=False)
 print(f"CSV created successfully! Updated at {current_time} IST")
+print(f"Total indices processed: {len(index_dict)} out of {len(target_indices)}")
