@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import pytz
 import os
+
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
 }
@@ -22,6 +23,11 @@ data_market = response_market.json()
 url_commodities = "https://priceapi.moneycontrol.com/technicalCompanyData/commodity/getMajorCommodities?tabName=SPOT&deviceType=W"
 response_commodities = requests.get(url_commodities, headers=headers)
 data_commodities = response_commodities.json()
+
+# FOURTH API: Fetch GIFT-NIFTY data from MoneyControl
+url_gift_nifty = "https://appfeeds.moneycontrol.com/jsonapi/market/indices&format=json&ind_id=in;gsx&source=globalindices"
+response_gift_nifty = requests.get(url_gift_nifty, headers=headers)
+data_gift_nifty = response_gift_nifty.json()
 
 # Target indices list including GIFT-NIFTY and USD/INR
 target_indices = [
@@ -105,21 +111,36 @@ for item in data_indices['data']:
             'Year Low': item.get('yearLow')
         }
 
-# Add GIFT-NIFTY data
-if 'giftnifty' in data_market:
-    gift = data_market['giftnifty']
+# Process GIFT-NIFTY data from MoneyControl API
+if 'indices' in data_gift_nifty:
+    gift_data = data_gift_nifty['indices']
+    
+    # Extract GIFT-NIFTY data
+    lastprice = gift_data.get('lastprice', '-')
+    change = gift_data.get('change', '-')
+    percentchange = gift_data.get('percentchange', '-')
+    prevclose = gift_data.get('prevclose', '-')
+    yearlyhigh = gift_data.get('yearlyhigh', '-')
+    yearlylow = gift_data.get('yearlylow', '-')
+    
+    # Format percentage change
+    if percentchange != '-':
+        percent_change_str = f"{percentchange}%"
+    else:
+        percent_change_str = "-"
+    
     index_dict['GIFT-NIFTY'] = {
         'Index Name': 'GIFT-NIFTY',
-        'Last': gift.get('LASTPRICE', '-'),
-        'Change': '-',
-        '% Change': '-',
-        'Previous Close': '-',
-        'Adv/Dec Ratio': '-',
-        'Year High': '-',
-        'Year Low': '-'
+        'Last': lastprice,
+        'Change': change,
+        '% Change': percent_change_str,
+        'Previous Close': prevclose,
+        'Adv/Dec Ratio': '-',  # Not available in MoneyControl API
+        'Year High': yearlyhigh,
+        'Year Low': yearlylow
     }
 
-# Add USD/INR data
+# Add USD/INR data from NSE market status
 for item in data_market['marketState']:
     if item.get('market') == 'currencyfuture':
         index_dict['USD/INR'] = {
@@ -196,7 +217,9 @@ records.append({
     'Year High': 'Updated Time:',
     'Year Low': current_time
 })
-os.makedirs('../Data', exist_ok=True)
+
+# Save to CSV
+os.makedirs('Data', exist_ok=True)
 df = pd.DataFrame(records)
 df.to_csv('Data/nse_all_indices.csv', index=False)
-print("CSV created successfully!")
+print(f"CSV created successfully! Updated at {current_time} IST")
