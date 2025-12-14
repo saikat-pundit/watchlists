@@ -161,7 +161,3 @@ os.makedirs('Data', exist_ok=True)
 # Save to CSV
 csv_path = 'Data/GLOBAL_COMMODITIES.csv'
 df.to_csv(csv_path, index=False)
-
-# Display the dataframe (optional)
-print("\nData Preview:")
-print(df.to_string(index=False))
