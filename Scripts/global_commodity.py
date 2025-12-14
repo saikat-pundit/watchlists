@@ -157,7 +157,3 @@ df = pd.DataFrame(commodity_data)
 
 # Ensure Data directory exists
 os.makedirs('Data', exist_ok=True)
-
-# Save to CSV
-csv_path = 'Data/GLOBAL_COMMODITIES.csv'
-df.to_csv(csv_path, index=False)
