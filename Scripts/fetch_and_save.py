@@ -9,7 +9,21 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
 }
 
-# FIRST API: Fetch all indices data from NSE
+# TradingView API base URL
+TV_BASE_URL = "https://scanner.tradingview.com/symbol?symbol={symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true&label-product=symbols-performance"
+
+# TradingView symbols mapping
+TV_SYMBOLS = {
+    "USD/INR": "FX_IDC:USDINR",
+    "GIFT-NIFTY": "NSEIX:NIFTY1!",
+    "GOLD": "MCX:GOLD1!",
+    "SILVER": "MCX:SILVER1!",
+    "IND 5Y": "TVC:IN05Y",
+    "IND 10Y": "TVC:IN10Y",
+    "IND 30Y": "TVC:IN30Y"
+}
+
+# FIRST API: Fetch all indices data from NSE (maintained as per your requirement)
 url_indices = "https://www.nseindia.com/api/allIndices"
 response_indices = requests.get(url_indices, headers=headers)
 data_indices = response_indices.json()
@@ -19,32 +33,7 @@ url_market = "https://www.nseindia.com/api/marketStatus"
 response_market = requests.get(url_market, headers=headers)
 data_market = response_market.json()
 
-# THIRD API: Fetch commodity data from Money Control
-url_commodities = "https://priceapi.moneycontrol.com/technicalCompanyData/commodity/getMajorCommodities?tabName=MCX&deviceType=W"
-response_commodities = requests.get(url_commodities, headers=headers)
-data_commodities = response_commodities.json()
-
-# FOURTH API: Fetch GIFT-NIFTY data from MoneyControl
-url_gift_nifty = "https://appfeeds.moneycontrol.com/jsonapi/market/indices&format=json&ind_id=in;gsx&source=globalindices"
-response_gift_nifty = requests.get(url_gift_nifty, headers=headers)
-data_gift_nifty = response_gift_nifty.json()
-
-# FIFTH API: Fetch IND 5Y bond data
-url_ind_5y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND5Y:IND"
-response_ind_5y = requests.get(url_ind_5y, headers=headers)
-data_ind_5y = response_ind_5y.json()
-
-# SIXTH API: Fetch IND 10Y bond data
-url_ind_10y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND10YR:IND"
-response_ind_10y = requests.get(url_ind_10y, headers=headers)
-data_ind_10y = response_ind_10y.json()
-
-# SEVENTH API: Fetch IND 30Y bond data
-url_ind_30y = "https://priceapi.moneycontrol.com/pricefeed/usMarket/bond/GIND30Y:IND"
-response_ind_30y = requests.get(url_ind_30y, headers=headers)
-data_ind_30y = response_ind_30y.json()
-
-# Target indices list including bonds
+# Target indices list
 target_indices = [
     "NIFTY 50",
     "INDIA VIX",
@@ -82,9 +71,61 @@ target_indices = [
 
 index_dict = {}
 
-# Process all indices data from NSE
+# Helper function to fetch data from TradingView API
+def fetch_tradingview_data(symbol_name, tv_symbol):
+    """Fetch data from TradingView API for the given symbol"""
+    url = TV_BASE_URL.format(symbol=tv_symbol)
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract required fields
+            close = data.get('close', '-')
+            change_abs = data.get('change_abs', '-')
+            change = data.get('change', '-')
+            prev_close = data.get('close[1]', '-')
+            year_high = data.get('price_52_week_high', '-')
+            year_low = data.get('price_52_week_low', '-')
+            
+            # Format percentage change
+            if change != '-':
+                percent_change_str = f"{change:.2f}%" if isinstance(change, (int, float)) else f"{change}%"
+            else:
+                percent_change_str = "-"
+            
+            return {
+                'Index': symbol_name,
+                'LTP': round(close, 2) if isinstance(close, (int, float)) else close,
+                'Chng': round(change_abs, 2) if isinstance(change_abs, (int, float)) else change_abs,
+                '% Chng': percent_change_str,
+                'Previous': round(prev_close, 2) if isinstance(prev_close, (int, float)) else prev_close,
+                'Adv:Dec': '-',
+                'Yr Hi': round(year_high, 2) if isinstance(year_high, (int, float)) else year_high,
+                'Yr Lo': round(year_low, 2) if isinstance(year_low, (int, float)) else year_low
+            }
+        else:
+            print(f"Error fetching {symbol_name}: Status code {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error fetching {symbol_name}: {str(e)}")
+        return None
+
+# Fetch TradingView data for specified symbols
+for index_name, tv_symbol in TV_SYMBOLS.items():
+    print(f"Fetching {index_name} data from TradingView...")
+    tv_data = fetch_tradingview_data(index_name, tv_symbol)
+    if tv_data:
+        index_dict[index_name] = tv_data
+
+# Process all indices data from NSE for non-TradingView indices
 for item in data_indices['data']:
     index_name = item.get('index')
+    
+    # Skip indices already fetched from TradingView
+    if index_name in TV_SYMBOLS:
+        continue
     
     if index_name in target_indices:
         try:
@@ -128,185 +169,6 @@ for item in data_indices['data']:
             'Yr Lo': item.get('yearLow')
         }
 
-# Process GIFT-NIFTY data from MoneyControl API - UPDATED SECTION
-if 'indices' in data_gift_nifty:
-    gift_data = data_gift_nifty['indices']
-    
-    # Extract GIFT-NIFTY data
-    lastprice = gift_data.get('lastprice', '-')
-    change = gift_data.get('change', '-')
-    percentchange = gift_data.get('percentchange', '-')
-    prevclose = gift_data.get('prevclose', '-')
-    yearlyhigh = gift_data.get('yearlyhigh', '-')
-    yearlylow = gift_data.get('yearlylow', '-')
-    
-    # Clean comma from digits - ADDED THIS FUNCTION
-    def clean_number(value):
-        if value == '-' or value is None:
-            return '-'
-        if isinstance(value, (int, float)):
-            return value
-        if isinstance(value, str):
-            # Remove commas and convert to float if possible
-            cleaned = value.replace(',', '')
-            try:
-                return float(cleaned)
-            except ValueError:
-                return value
-        return value
-    
-    # Clean all numeric fields
-    lastprice = clean_number(lastprice)
-    change = clean_number(change)
-    prevclose = clean_number(prevclose)
-    yearlyhigh = clean_number(yearlyhigh)
-    yearlylow = clean_number(yearlylow)
-    
-    # Format percentage change
-    if percentchange != '-':
-        percent_change_str = f"{percentchange}%"
-    else:
-        percent_change_str = "-"
-    
-    index_dict['GIFT-NIFTY'] = {
-        'Index': 'GIFT-NIFTY',
-        'LTP': lastprice,
-        'Chng': change,
-        '% Chng': percent_change_str,
-        'Previous': prevclose,
-        'Adv:Dec': '-',  # Not available in MoneyControl API
-        'Yr Hi': yearlyhigh,
-        'Yr Lo': yearlylow
-    }
-
-# Add USD/INR data from NSE market status
-for item in data_market['marketState']:
-    if item.get('market') == 'currencyfuture':
-        index_dict['USD/INR'] = {
-            'Index': 'USD/INR',
-            'LTP': item.get('last', '-'),
-            'Chng': '-',
-            '% Chng': '-',
-            'Previous': '-',
-            'Adv:Dec': '-',
-            'Yr Hi': '-',
-            'Yr Lo': '-'
-        }
-        break
-
-# Process IND 5Y bond data
-if data_ind_5y.get('code') == '200' and 'data' in data_ind_5y:
-    bond_data = data_ind_5y['data']
-    
-    current_price = bond_data.get('current_price', '-')
-    net_change = bond_data.get('net_change', '-')
-    percent_change = bond_data.get('percent_change', '-')
-    prev_close = bond_data.get('prev_close', '-')
-    wk_high = bond_data.get('52wkHigh', '-')
-    wk_low = bond_data.get('52wkLow', '-')
-    
-    # Format percentage change
-    if percent_change != '-':
-        percent_change_str = f"{percent_change}%"
-    else:
-        percent_change_str = "-"
-    
-    index_dict['IND 5Y'] = {
-        'Index': 'IND 5Y',
-        'LTP': current_price,
-        'Chng': net_change,
-        '% Chng': percent_change_str,
-        'Previous': prev_close,
-        'Adv:Dec': '-',
-        'Yr Hi': wk_high,
-        'Yr Lo': wk_low
-    }
-
-# Process IND 10Y bond data
-if data_ind_10y.get('code') == '200' and 'data' in data_ind_10y:
-    bond_data = data_ind_10y['data']
-    
-    current_price = bond_data.get('current_price', '-')
-    net_change = bond_data.get('net_change', '-')
-    percent_change = bond_data.get('percent_change', '-')
-    prev_close = bond_data.get('prev_close', '-')
-    wk_high = bond_data.get('52wkHigh', '-')
-    wk_low = bond_data.get('52wkLow', '-')
-    
-    # Format percentage change
-    if percent_change != '-':
-        percent_change_str = f"{percent_change}%"
-    else:
-        percent_change_str = "-"
-    
-    index_dict['IND 10Y'] = {
-        'Index': 'IND 10Y',
-        'LTP': current_price,
-        'Chng': net_change,
-        '% Chng': percent_change_str,
-        'Previous': prev_close,
-        'Adv:Dec': '-',
-        'Yr Hi': wk_high,
-        'Yr Lo': wk_low
-    }
-
-# Process IND 30Y bond data
-if data_ind_30y.get('code') == '200' and 'data' in data_ind_30y:
-    bond_data = data_ind_30y['data']
-    
-    current_price = bond_data.get('current_price', '-')
-    net_change = bond_data.get('net_change', '-')
-    percent_change = bond_data.get('percent_change', '-')
-    prev_close = bond_data.get('prev_close', '-')
-    wk_high = bond_data.get('52wkHigh', '-')
-    wk_low = bond_data.get('52wkLow', '-')
-    
-    # Format percentage change
-    if percent_change != '-':
-        percent_change_str = f"{percent_change}%"
-    else:
-        percent_change_str = "-"
-    
-    index_dict['IND 30Y'] = {
-        'Index': 'IND 30Y',
-        'LTP': current_price,
-        'Chng': net_change,
-        '% Chng': percent_change_str,
-        'Previous': prev_close,
-        'Adv:Dec': '-',
-        'Yr Hi': wk_high,
-        'Yr Lo': wk_low
-    }
-
-# Add GOLD and SILVER data from Money Control API
-if 'data' in data_commodities and 'list' in data_commodities['data']:
-    for commodity in data_commodities['data']['list']:
-        symbol = commodity.get('symbol')
-        
-        if symbol in ['GOLD', 'SILVER']:
-            try:
-                last_price = float(commodity.get('lastPrice', 0))
-                price_change = float(commodity.get('priceChange', 0))
-                price_change_percentage = commodity.get('priceChangePercentage', '0')
-                
-                # Calculate previous close using formula: previousClose = lastPrice - priceChange
-                previous_close = last_price - price_change
-                
-                # For year high/low, use current price (no historical data available)
-                index_dict[symbol] = {
-                    'Index': symbol,
-                    'LTP': last_price,
-                    'Chng': price_change,
-                    '% Chng': f"{price_change_percentage}%",
-                    'Previous': round(previous_close, 2),
-                    'Adv:Dec': '-',
-                    'Yr Hi': '-',
-                    'Yr Lo': '-'
-                }
-            except (ValueError, TypeError) as e:
-                print(f"Error processing {symbol}: {e}")
-                continue
-
 # Create records in the specified order
 records = []
 for index_name in target_indices:
@@ -345,5 +207,16 @@ records.append({
 os.makedirs('Data', exist_ok=True)
 df = pd.DataFrame(records)
 df.to_csv('Data/nse_all_indices.csv', index=False)
-print(f"CSV created successfully! Updated at {current_time} IST")
+
+# Print summary
+print(f"\nCSV created successfully! Updated at {current_time} IST")
 print(f"Total indices processed: {len(index_dict)} out of {len(target_indices)}")
+
+# Print details of TradingView data fetched
+print("\nTradingView Data Fetched:")
+for symbol in TV_SYMBOLS.keys():
+    if symbol in index_dict:
+        data = index_dict[symbol]
+        print(f"  {symbol}: LTP={data['LTP']}, Change={data['Chng']}, %Change={data['% Chng']}")
+    else:
+        print(f"  {symbol}: Failed to fetch")
