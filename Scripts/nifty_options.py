@@ -12,19 +12,12 @@ headers = {
 }
 
 def get_next_tuesday():
-    """Get the next Tuesday date in DD-MMM-YYYY format"""
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
-    
-    # Calculate days until next Tuesday
     # Monday is 0, Tuesday is 1, etc.
-    days_ahead = 1 - today.weekday()  # 1 is Tuesday
-    if days_ahead <= 0:  # If today is Tuesday or past Tuesday
-        days_ahead += 7  # Get next week's Tuesday
-    
+    days_ahead = 1 - today.weekday() 
+        days_ahead += 7 
     next_tuesday = today + timedelta(days=days_ahead)
-    
-    # Format date as required by NSE (e.g., "23-Dec-2025")
     formatted_date = next_tuesday.strftime('%d-%b-%Y').upper()
     return formatted_date
 
