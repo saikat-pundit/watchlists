@@ -32,7 +32,7 @@ jobs:
 
       - name: Run both scripts
         run: |
-          python Scripts/nifty_option.py
+          python Scripts/nifty_options.py
           
       - name: Commit and push if changed
         run: |
