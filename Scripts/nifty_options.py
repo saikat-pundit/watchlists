@@ -25,9 +25,9 @@ def get_next_tuesday():
     return next_tuesday.strftime('%d-%b-%Y').upper()
 
 def round_to_nearest_50(price):
-    return round(price / 50) * 100
+    return round(price / 50) * 50
 
-def get_filtered_strike_prices(data, strike_range=10):
+def get_filtered_strike_prices(data, strike_range=20):
     underlying_value = data['records']['underlyingValue']
     rounded_strike = round_to_nearest_50(underlying_value)
     
