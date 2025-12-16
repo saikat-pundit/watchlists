@@ -26,7 +26,7 @@ target_funds_api = [
     "Nippon India Nifty Next 50 Junior BeES FoF - Direct Plan - Growth Plan - Growth Option",
     "Nippon India Nivesh Lakshya Long Duration Fund- Direct Plan- Growth Option",
     "quant ELSS Tax Saver Fund - Growth Option - Direct Plan",
-    "SBI MAGNUM GILT FUND - DIRECT PLAN - GROWTH"
+    "SBI GILT FUND - DIRECT PLAN - GROWTH"
 ]
 
 def extract_display_name(full_name):
