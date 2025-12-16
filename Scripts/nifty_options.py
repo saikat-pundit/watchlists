@@ -90,7 +90,7 @@ def create_option_chain_dataframe(data, expiry_date):
     
     metadata = pd.DataFrame([{
         'CALL OI': '', 'CALL CHNG IN OI': '', 'CALL VOLUME': '', 'CALL IV': '',
-        'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': f"{underlying_value} (Rounded to: {rounded_strike})",
+        'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': f"{underlying_value}",
         'PUT LTP': 'Expiry: ' + expiry_date, 'PUT CHNG': '', 'PUT IV': '',
         'PUT VOLUME': '', 'PUT CHNG IN OI': '', 'PUT OI': ''
     }])
