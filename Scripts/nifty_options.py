@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import os
+import math
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
@@ -23,6 +24,23 @@ def get_next_tuesday():
     next_tuesday = today + timedelta(days=days_ahead)
     return next_tuesday.strftime('%d-%b-%Y').upper()
 
+def round_to_nearest_50(price):
+    return round(price / 50) * 50
+
+def get_filtered_strike_prices(data, strike_range=20):
+    underlying_value = data['records']['underlyingValue']
+    rounded_strike = round_to_nearest_50(underlying_value)
+    
+    all_strikes = sorted([item['strikePrice'] for item in data['records']['data']])
+    
+    target_index = all_strikes.index(rounded_strike) if rounded_strike in all_strikes else \
+                   min(range(len(all_strikes)), key=lambda i: abs(all_strikes[i] - rounded_strike))
+    
+    start_index = max(0, target_index - strike_range)
+    end_index = min(len(all_strikes), target_index + strike_range + 1)
+    
+    return all_strikes[start_index:end_index], underlying_value, rounded_strike
+
 def get_option_chain(symbol="NIFTY", expiry=None):
     if expiry is None:
         expiry = get_next_tuesday()
@@ -39,12 +57,16 @@ def get_option_chain(symbol="NIFTY", expiry=None):
     return data, expiry
 
 def create_option_chain_dataframe(data, expiry_date):
-    records = data['records']
-    underlying_value = records['underlyingValue']
+    filtered_strikes, underlying_value, rounded_strike = get_filtered_strike_prices(data)
+    
+    strike_map = {item['strikePrice']: item for item in data['records']['data']}
     
     option_data = []
-    for item in records['data']:
-        strike_price = item['strikePrice']
+    for strike in filtered_strikes:
+        if strike not in strike_map:
+            continue
+            
+        item = strike_map[strike]
         ce_data = item.get('CE', {})
         pe_data = item.get('PE', {})
         
@@ -55,7 +77,7 @@ def create_option_chain_dataframe(data, expiry_date):
             'CALL IV': ce_data.get('impliedVolatility', 0),
             'CALL CHNG': ce_data.get('change', 0),
             'CALL LTP': ce_data.get('lastPrice', 0),
-            'STRIKE': strike_price,
+            'STRIKE': strike,
             'PUT LTP': pe_data.get('lastPrice', 0),
             'PUT CHNG': pe_data.get('change', 0),
             'PUT IV': pe_data.get('impliedVolatility', 0),
@@ -68,7 +90,7 @@ def create_option_chain_dataframe(data, expiry_date):
     
     metadata = pd.DataFrame([{
         'CALL OI': '', 'CALL CHNG IN OI': '', 'CALL VOLUME': '', 'CALL IV': '',
-        'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': underlying_value,
+        'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': f"{underlying_value} (Rounded to: {rounded_strike})",
         'PUT LTP': 'Expiry: ' + expiry_date, 'PUT CHNG': '', 'PUT IV': '',
         'PUT VOLUME': '', 'PUT CHNG IN OI': '', 'PUT OI': ''
     }])
@@ -101,7 +123,9 @@ def main():
         print(f"Option chain saved to Data/Option.csv")
         print(f"Timestamp: {current_time} IST")
         print(f"Underlying Value: {data['records']['underlyingValue']}")
+        print(f"Rounded to nearest 50: {round_to_nearest_50(data['records']['underlyingValue'])}")
         print(f"Expiry Date: {expiry}")
+        print(f"Showing {len(df)-2} strike prices")
     else:
         print("Failed to fetch option chain data")
 
