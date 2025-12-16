@@ -4,11 +4,8 @@ from datetime import datetime, timedelta
 import pytz
 import os
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
-}
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'}
 
-# Specific funds to fetch (with full names for API matching)
 target_funds_api = [
     "Aditya Birla Sun Life PSU Equity Fund-Direct Plan-Growth",
     "Axis Focused Fund - Direct Plan - Growth Option",
@@ -32,32 +29,21 @@ target_funds_api = [
     "SBI MAGNUM GILT FUND - DIRECT PLAN - GROWTH"
 ]
 
-# Function to extract display name (everything before first dash)
 def extract_display_name(full_name):
-    # Split by dash and take the first part, strip whitespace
     display_name = full_name.split('-')[0].strip()
-    # If there are multiple spaces, collapse them to single space
     display_name = ' '.join(display_name.split())
-    return display_name
+    return display_name.upper()
 
-# Create display names for CSV
 display_names = [extract_display_name(fund) for fund in target_funds_api]
-
-# Create a mapping from display name to API name for lookup
 fund_name_mapping = dict(zip(display_names, target_funds_api))
 
-# Set IST timezone
 ist = pytz.timezone('Asia/Kolkata')
+today = datetime.now(ist)
 
-# Get the correct date in IST
-today = datetime.now(ist)  # Use IST timezone
-# If today is Monday, go back to Friday (3 days)
-if today.weekday() == 0:  # Monday = 0
+if today.weekday() == 0:
     target_date = today - timedelta(days=3)
-# If today is Sunday, go back to Friday (2 days)
-elif today.weekday() == 6:  # Sunday = 6
+elif today.weekday() == 6:
     target_date = today - timedelta(days=2)
-# For other days, use previous day
 else:
     target_date = today - timedelta(days=1)
 
@@ -67,29 +53,27 @@ url = f"https://www.amfiindia.com/api/nav-history?query_type=all_for_date&from_d
 response = requests.get(url, headers=headers)
 data = response.json()
 
-# Create a dictionary to store NAV data for quick lookup
 nav_data = {}
-
 for fund in data['data']:
     for scheme in fund['schemes']:
         for nav in scheme['navs']:
             nav_name = nav['NAV_Name']
-            
-            # Check if this NAV is in our target list
             if nav_name in target_funds_api:
-                # Extract display name
                 display_name = extract_display_name(nav_name)
+                upload_time = nav['hNAV_Upload_display']
+                if upload_time:
+                    date_only = ' '.join(upload_time.split()[:2])
+                else:
+                    date_only = '-'
                 nav_data[display_name] = {
                     'Fund NAV': nav['hNAV_Amt'],
-                    'Update Time': nav['hNAV_Upload_display']
+                    'Update Time': date_only
                 }
 
-# Prepare records in the order of display_names
 sorted_records = []
 funds_found = 0
 
 for display_name in display_names:
-    # Check if we have data for this fund
     if display_name in nav_data:
         sorted_records.append({
             'Fund Name': display_name,
@@ -98,35 +82,22 @@ for display_name in display_names:
         })
         funds_found += 1
     else:
-        # If fund not found, show '-'
         sorted_records.append({
             'Fund Name': display_name,
             'Fund NAV': '-',
             'Update Time': '-'
         })
 
-# Add timestamp row with IST
 timestamp = datetime.now(ist).strftime('%d-%b-%Y %H:%M')
 sorted_records.append({
     'Fund Name': '',
-    'Fund NAV': 'Last Updated:',
+    'Fund NAV': 'LAST UPDATED:',
     'Update Time': f'{timestamp} IST'
 })
 
-# Save to CSV
 os.makedirs('Data', exist_ok=True)
 df = pd.DataFrame(sorted_records)
 df.to_csv('Data/Daily_NAV.csv', index=False)
 
-print(f"NAV data saved successfully for date: {target_date_str}!")
 print(f"Funds found: {funds_found} out of {len(display_names)}")
 print(f"Timestamp: {timestamp} IST")
-print(f"File saved to: Data/Daily_NAV.csv")
-
-# Display sample of how names appear in CSV
-print("\nSample of fund names in CSV:")
-print("=" * 50)
-for i, record in enumerate(sorted_records[:5]):  # Show first 5
-    if record['Fund Name']:  # Skip the timestamp row
-        print(f"{record['Fund Name']} - NAV: {record['Fund NAV']}")
-print("=" * 50)
