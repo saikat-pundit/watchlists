@@ -24,12 +24,12 @@ def get_next_tuesday():
     next_tuesday = today + timedelta(days=days_ahead)
     return next_tuesday.strftime('%d-%b-%Y').upper()
 
-def round_to_nearest_50(price):
-    return round(price / 50) * 50
+def round_to_nearest_100(price):
+    return round(price / 100) * 100
 
-def get_filtered_strike_prices(data, strike_range=20):
+def get_filtered_strike_prices(data, strike_range=10):  # Changed from 20 to 10
     underlying_value = data['records']['underlyingValue']
-    rounded_strike = round_to_nearest_50(underlying_value)
+    rounded_strike = round_to_nearest_100(underlying_value)  # Changed from round_to_nearest_50
     
     all_strikes = sorted([item['strikePrice'] for item in data['records']['data']])
     
@@ -40,6 +40,7 @@ def get_filtered_strike_prices(data, strike_range=20):
     end_index = min(len(all_strikes), target_index + strike_range + 1)
     
     return all_strikes[start_index:end_index], underlying_value, rounded_strike, target_index - start_index
+
 
 def get_option_chain(symbol="NIFTY", expiry=None):
     if expiry is None:
@@ -128,7 +129,7 @@ def main():
         print(f"Option chain saved to Data/Option.csv")
         print(f"Timestamp: {current_time} IST")
         print(f"Underlying Value: {data['records']['underlyingValue']}")
-        print(f"Rounded to nearest 50: {round_to_nearest_50(data['records']['underlyingValue'])}")
+        print(f"Rounded to nearest 100: {round_to_nearest_100(data['records']['underlyingValue'])}")
         print(f"Expiry Date: {expiry}")
         print(f"Showing {len(df)-1} rows (including timestamp row)")
     else:
