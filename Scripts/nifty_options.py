@@ -18,16 +18,16 @@ def get_next_tuesday():
     today = now.date()
     days_ahead = 1 - today.weekday()
     
-    if days_ahead < 0 or (days_ahead == 0 and now.hour >= 15):
+    if days_ahead < 0 or (days_ahead == 0 and now.hour >= 16):
         days_ahead += 7
     
     next_tuesday = today + timedelta(days=days_ahead)
     return next_tuesday.strftime('%d-%b-%Y').upper()
 
 def round_to_nearest_50(price):
-    return round(price / 50) * 50
+    return round(price / 50) * 100
 
-def get_filtered_strike_prices(data, strike_range=20):
+def get_filtered_strike_prices(data, strike_range=10):
     underlying_value = data['records']['underlyingValue']
     rounded_strike = round_to_nearest_50(underlying_value)
     
