@@ -88,11 +88,11 @@ for display_name in display_names:
             'Update Time': '-'
         })
 
-timestamp = datetime.now(ist).strftime('%d-%b-%Y %H:%M')
+timestamp = datetime.now(ist).strftime('%d-%b %H:%M')
 sorted_records.append({
     'Fund Name': '',
     'Fund NAV': 'LAST UPDATED:',
-    'Update Time': f'{timestamp} IST'
+    'Update Time': f'{timestamp}'
 })
 
 os.makedirs('Data', exist_ok=True)
