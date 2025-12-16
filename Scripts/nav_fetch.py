@@ -30,9 +30,17 @@ target_funds_api = [
 ]
 
 def extract_display_name(full_name):
-    display_name = full_name.split('-')[0].strip()
-    display_name = ' '.join(display_name.split())
-    return display_name.upper()
+    if "FoF" in full_name:
+        parts = full_name.split("FoF")
+        result = parts[0] + "FoF"
+    elif "Fund" in full_name:
+        parts = full_name.split("Fund")
+        result = parts[0] + "Fund"
+    else:
+        result = full_name.split('-')[0]
+    
+    result = ' '.join(result.split()).upper()
+    return result
 
 display_names = [extract_display_name(fund) for fund in target_funds_api]
 fund_name_mapping = dict(zip(display_names, target_funds_api))
