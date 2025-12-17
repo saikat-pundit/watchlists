@@ -1,119 +1,57 @@
-import requests
-import pandas as pd
+import requests, pandas as pd, os, pytz
 from datetime import datetime
-import pytz
-import os
 
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'}
+headers = {'User-Agent': 'Mozilla/5.0'}
+TV_SYMBOLS = {"USD/INR": "FX_IDC:USDINR", "GIFT-NIFTY": "NSEIX:NIFTY1!", "GOLD": "MCX:GOLD1!", "SILVER": "MCX:SILVER1!", "IND 5Y": "TVC:IN05Y", "IND 10Y": "TVC:IN10Y", "IND 30Y": "TVC:IN30Y"}
+target_indices = ["NIFTY 50", "INDIA VIX", "GIFT-NIFTY", "USD/INR", "GOLD", "SILVER", "IND 5Y", "IND 10Y", "IND 30Y", "NIFTY NEXT 50", "NIFTY MIDCAP SELECT", "NIFTY MIDCAP 50", "NIFTY SMALLCAP 50", "NIFTY 500", "NIFTY ALPHA 50", "NIFTY IT", "NIFTY BANK", "NIFTY FINANCIAL SERVICES", "NIFTY PSU BANK", "NIFTY PRIVATE BANK", "NIFTY FMCG", "NIFTY CONSUMER DURABLES", "NIFTY PHARMA", "NIFTY HEALTHCARE INDEX", "NIFTY METAL", "NIFTY AUTO", "NIFTY SERVICES SECTOR", "NIFTY OIL & GAS", "NIFTY CHEMICALS", "NIFTY COMMODITIES", "NIFTY INDIA CONSUMPTION", "NIFTY PSE"]
 
-TV_SYMBOLS = {
-    "USD/INR": "FX_IDC:USDINR",
-    "GIFT-NIFTY": "NSEIX:NIFTY1!",
-    "GOLD": "MCX:GOLD1!",
-    "SILVER": "MCX:SILVER1!",
-    "IND 5Y": "TVC:IN05Y",
-    "IND 10Y": "TVC:IN10Y",
-    "IND 30Y": "TVC:IN30Y"
-}
+def format_index_name(name):
+    if name == "NIFTY INDIA CONSUMPTION": return "CONSUMPTION"
+    return name.replace("NIFTY ", "") if name.startswith("NIFTY ") and name not in ["NIFTY 50", "NIFTY 500", "GIFT-NIFTY"] else name
 
-target_indices = [
-    "NIFTY 50", "INDIA VIX", "GIFT-NIFTY", "USD/INR", "GOLD", "SILVER", 
-    "IND 5Y", "IND 10Y", "IND 30Y", "NIFTY NEXT 50", "NIFTY MIDCAP SELECT",
-    "NIFTY MIDCAP 50", "NIFTY SMALLCAP 50", "NIFTY 500", "NIFTY ALPHA 50",
-    "NIFTY IT", "NIFTY BANK", "NIFTY FINANCIAL SERVICES", "NIFTY PSU BANK",
-    "NIFTY PRIVATE BANK", "NIFTY FMCG", "NIFTY CONSUMER DURABLES", "NIFTY PHARMA",
-    "NIFTY HEALTHCARE INDEX", "NIFTY METAL", "NIFTY AUTO", "NIFTY SERVICES SECTOR",
-    "NIFTY OIL & GAS", "NIFTY CHEMICALS", "NIFTY COMMODITIES", "NIFTY INDIA CONSUMPTION",
-    "NIFTY PSE"
-]
-
-def format_index_name(index_name):
-    if index_name == "NIFTY INDIA CONSUMPTION":
-        return "CONSUMPTION"
-    elif index_name.startswith("NIFTY ") and index_name not in ["NIFTY 50", "NIFTY 500","GIFT-NIFTY"]:
-        return index_name.replace("NIFTY ", "")
-    return index_name
+def format_value(value, key, index_name):
+    if value == '-' or value is None: return '-'
+    try:
+        if key in ['% Chng', 'Adv:Dec']: return f"{float(value):.2f}%" if key == '% Chng' else f"{float(value):.2f}"
+        if key == 'LTP' and index_name in ["INDIA VIX", "USD/INR", "IND 5Y", "IND 10Y", "IND 30Y"]: return f"{float(value):.2f}"
+        if key in ['Chng', 'LTP', 'Previous', 'Yr Hi', 'Yr Lo']: return str(int(float(value))) if '.' in str(value) else str(float(value))
+        return str(float(value))
+    except: return '-'
 
 index_dict = {}
-
-def format_tv_value(value, is_percent=False):
-    if value == '-' or value is None:
-        return '-'
+for name, symbol in TV_SYMBOLS.items():
+    url = f"https://scanner.tradingview.com/symbol?symbol={symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true"
     try:
-        if is_percent:
-            return f"{float(value):.2f}%"
-        return f"{float(value):.2f}" if '.' in str(value) else str(value)
-    except:
-        return '-'
-
-def fetch_tradingview_data(symbol_name, tv_symbol):
-    url = f"https://scanner.tradingview.com/symbol?symbol={tv_symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true"
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                'Index': format_index_name(symbol_name),
-                'LTP': format_tv_value(data.get('close')),
-                'Chng': format_tv_value(data.get('change_abs')),
-                '% Chng': format_tv_value(data.get('change'), is_percent=True),
-                'Previous': format_tv_value(data.get('close[1]')),
-                'Adv:Dec': '-',
-                'Yr Hi': format_tv_value(data.get('price_52_week_high')),
-                'Yr Lo': format_tv_value(data.get('price_52_week_low'))
-            }
-    except:
-        pass
-    return None
-
-for index_name, tv_symbol in TV_SYMBOLS.items():
-    tv_data = fetch_tradingview_data(index_name, tv_symbol)
-    if tv_data:
-        index_dict[index_name] = tv_data
+        data = requests.get(url, headers=headers, timeout=5).json()
+        index_dict[name] = {
+            'Index': format_index_name(name), 'LTP': data.get('close'), 'Chng': data.get('change_abs'),
+            '% Chng': data.get('change'), 'Previous': data.get('close[1]'), 'Adv:Dec': '-',
+            'Yr Hi': data.get('price_52_week_high'), 'Yr Lo': data.get('price_52_week_low')
+        }
+    except: pass
 
 try:
-    data_indices = requests.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=5).json()
-    for item in data_indices.get('data', []):
-        original_index_name = item.get('index')
-        if original_index_name in TV_SYMBOLS or original_index_name not in target_indices:
-            continue
-        
-        formatted_index_name = format_index_name(original_index_name)
-        
-        advances = int(item.get('advances', 0))
-        declines = int(item.get('declines', 0))
-        adv_dec_ratio = f"{advances/declines:.2f}" if declines != 0 else "Max" if advances > 0 else "-"
-        
-        index_dict[original_index_name] = {
-            'Index': formatted_index_name,
-            'LTP': item.get('last', '-'),
-            'Chng': item.get('variation', '-'),
-            '% Chng': f"{item.get('percentChange', '-')}%" if item.get('percentChange') is not None else '-',
-            'Previous': item.get('previousClose', '-'),
-            'Adv:Dec': adv_dec_ratio,
-            'Yr Hi': item.get('yearHigh', '-'),
-            'Yr Lo': item.get('yearLow', '-')
+    data = requests.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=5).json()
+    for item in data.get('data', []):
+        name = item.get('index')
+        if name in TV_SYMBOLS or name not in target_indices: continue
+        adv, dec = int(item.get('advances', 0)), int(item.get('declines', 0))
+        adv_dec = f"{adv/dec:.2f}" if dec != 0 else "Max" if adv > 0 else "-"
+        index_dict[name] = {
+            'Index': format_index_name(name), 'LTP': item.get('last'), 'Chng': item.get('variation'),
+            '% Chng': item.get('percentChange'), 'Previous': item.get('previousClose'), 'Adv:Dec': adv_dec,
+            'Yr Hi': item.get('yearHigh'), 'Yr Lo': item.get('yearLow')
         }
-except:
-    pass
+except: pass
 
 records = []
-for index_name in target_indices:
-    formatted_name = format_index_name(index_name)
-    if index_name in index_dict:
-        records.append(index_dict[index_name])
+for idx in target_indices:
+    if idx in index_dict:
+        rec = {k: format_value(v, k, idx) for k, v in index_dict[idx].items()}
     else:
-        records.append({
-            'Index': formatted_name,
-            'LTP': '-', 'Chng': '-', '% Chng': '-', 'Previous': '-',
-            'Adv:Dec': '-', 'Yr Hi': '-', 'Yr Lo': '-'
-        })
+        rec = {'Index': format_index_name(idx), 'LTP': '-', 'Chng': '-', '% Chng': '-', 'Previous': '-', 'Adv:Dec': '-', 'Yr Hi': '-', 'Yr Lo': '-'}
+    records.append(rec)
 
-current_time = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')
-records.append({
-    'Index': '', 'LTP': '', 'Chng': '', '% Chng': '', 'Previous': '',
-    'Adv:Dec': '', 'Yr Hi': 'Updated Time:', 'Yr Lo': current_time
-})
-
+records.append({'Index': '', 'LTP': '', 'Chng': '', '% Chng': '', 'Previous': '', 'Adv:Dec': '', 'Yr Hi': 'Updated Time:', 'Yr Lo': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')})
 os.makedirs('Data', exist_ok=True)
 pd.DataFrame(records).to_csv('Data/nse_all_indices.csv', index=False)
