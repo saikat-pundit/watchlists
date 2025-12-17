@@ -286,7 +286,7 @@ def main():
         os.makedirs('Data', exist_ok=True)
         
         # Save to CSV
-        output_file = 'Data/Option_With_IV.csv'
+        output_file = 'Data/Option.csv'
         df.to_csv(output_file, index=False)
         
         # Display summary
