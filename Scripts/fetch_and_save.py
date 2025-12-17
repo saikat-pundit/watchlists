@@ -16,9 +16,17 @@ def format_value(value, key, index_name):
         if index_name in ["INDIA VIX", "USD/INR", "IND 5Y", "IND 10Y", "IND 30Y"]:
             return f"{float(value):.2f}" if key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo'] else str(float(value))
         if index_name in ["GIFT-NIFTY", "GOLD", "SILVER"] and key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
-            return str(int(float(value))) if '.' in str(value) else str(float(value))
+            val = float(value)
+            if val.is_integer():
+                return str(int(val))
+            else:
+                return str(val)
         if key in ['Chng', 'LTP', 'Previous', 'Yr Hi', 'Yr Lo']:
-            return str(int(float(value))) if '.' in str(value) else str(float(value))
+            val = float(value)
+            if val.is_integer():
+                return str(int(val))
+            else:
+                return str(val)
         return str(float(value))
     except: return '-'
 
