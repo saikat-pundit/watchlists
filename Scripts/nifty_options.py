@@ -70,9 +70,9 @@ def create_option_chain_dataframe(data, expiry_date):
         # Insert underlying row BEFORE the rounded strike
         if i == underlying_index:
             option_data.append({
-                'CALL OI': '', 'CALL OI CHNG': '', 'CALL VOLUME': '', 'CALL IV': '',
+                'CALL OI': '', 'CALL OI CHNG': '', 'CALL VOLUME': '', 
                 'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': f"{underlying_value}",
-                'PUT LTP': 'Expiry: ' + expiry_date, 'PUT CHNG': '', 'PUT IV': '',
+                'PUT LTP': 'Expiry: ' + expiry_date, 'PUT CHNG': '', 
                 'PUT VOLUME': '', 'PUT OI CHNG': '', 'PUT OI': ''
             })
         
@@ -84,13 +84,11 @@ def create_option_chain_dataframe(data, expiry_date):
             'CALL OI': ce_data.get('openInterest', 0),
             'CALL OI CHNG': ce_data.get('changeinOpenInterest', 0),
             'CALL VOLUME': ce_data.get('totalTradedVolume', 0),
-            'CALL IV': ce_data.get('impliedVolatility', 0),
             'CALL CHNG': ce_data.get('change', 0),
             'CALL LTP': ce_data.get('lastPrice', 0),
             'STRIKE': strike,
             'PUT LTP': pe_data.get('lastPrice', 0),
             'PUT CHNG': pe_data.get('change', 0),
-            'PUT IV': pe_data.get('impliedVolatility', 0),
             'PUT VOLUME': pe_data.get('totalTradedVolume', 0),
             'PUT OI CHNG': pe_data.get('changeinOpenInterest', 0),
             'PUT OI': pe_data.get('openInterest', 0)
@@ -102,9 +100,9 @@ def create_option_chain_dataframe(data, expiry_date):
     current_time = datetime.now(ist).strftime('%d-%b %H:%M')
     
     timestamp_row = pd.DataFrame([{
-        'CALL OI': '', 'CALL OI CHNG': '', 'CALL VOLUME': '', 'CALL IV': '',
+        'CALL OI': '', 'CALL OI CHNG': '', 'CALL VOLUME': '', 
         'CALL CHNG': '', 'CALL LTP': '', 'STRIKE': '',
-        'PUT LTP': '', 'PUT CHNG': '', 'PUT IV': '', 'PUT VOLUME': '',
+        'PUT LTP': '', 'PUT CHNG': '', 'PUT VOLUME': '',
         'PUT OI CHNG': 'Update Time', 'PUT OI': current_time
     }])
     
