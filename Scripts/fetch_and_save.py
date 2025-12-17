@@ -46,10 +46,12 @@ except: pass
 
 records = []
 for idx in target_indices:
+    formatted_name = format_index_name(idx)
     if idx in index_dict:
         rec = {k: format_value(v, k, idx) for k, v in index_dict[idx].items()}
+        rec['Index'] = formatted_name
     else:
-        rec = {'Index': format_index_name(idx), 'LTP': '-', 'Chng': '-', '% Chng': '-', 'Previous': '-', 'Adv:Dec': '-', 'Yr Hi': '-', 'Yr Lo': '-'}
+        rec = {'Index': formatted_name, 'LTP': '-', 'Chng': '-', '% Chng': '-', 'Previous': '-', 'Adv:Dec': '-', 'Yr Hi': '-', 'Yr Lo': '-'}
     records.append(rec)
 
 records.append({'Index': '', 'LTP': '', 'Chng': '', '% Chng': '', 'Previous': '', 'Adv:Dec': '', 'Yr Hi': 'Updated Time:', 'Yr Lo': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')})
