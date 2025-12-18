@@ -19,16 +19,16 @@ commodity_symbols = [
 ]
 
 def format_value(value, key, name):
-    if value is None: return "0.00"
+    if value is None: return "0"
     try:
         if key == '% Chng': return f"{float(value):.2f}%"
         if name in ["VIX", "Dollar Index", "US10Y", "USD/INR", "USD/JPY"] and key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
             return f"{float(value):.2f}"
         if key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
             val = float(value)
-            return str(int(val)) if val.is_integer() else str(val)
+            return str(int(val))
         return str(float(value))
-    except: return "0.00"
+    except: return "0"
 
 commodity_data = []
 for c in commodity_symbols:
@@ -46,8 +46,8 @@ for c in commodity_symbols:
     except:
         commodity_data.append({
             'Index': c["name"],
-            'LTP': "0.00", 'Chng': "0.00", '% Chng': "0.00%",
-            'Previous': "0.00", 'Yr Hi': "0.00", 'Yr Lo': "0.00"
+            'LTP': "0", 'Chng': "0", '% Chng': "0.00%",
+            'Previous': "0", 'Yr Hi': "0", 'Yr Lo': "0"
         })
 
 commodity_data.append({
