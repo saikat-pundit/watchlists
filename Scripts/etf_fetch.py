@@ -1,119 +1,46 @@
-import requests
-import pandas as pd
+import requests, pandas as pd, os, pytz
 from datetime import datetime
-import pytz
-import os
-# Headers to mimic a browser request
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
-}
 
-# URL for ETF data
+headers = {'User-Agent': 'Mozilla/5.0'}
 url = "https://www.nseindia.com/api/etf"
+target_symbols = ["NIFTYBEES", "METALIETF", "PVTBANIETF", "ALPHA", "GOLDBEES", "SILVERBEES", "PHARMABEES", "ITBEES", "BANKBEES"]
 
 try:
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()  # Raise an error for bad status codes
-    data = response.json()
-except requests.exceptions.RequestException as e:
-    print(f"Error fetching data: {e}")
-    exit(1)
+    data = requests.get(url, headers=headers).json()
+except:
+    data = {}
 
-# List of target ETF symbols to fetch
-target_symbols = [
-    "NIFTYBEES",
-    "METALIETF",
-    "PVTBANIETF",
-    "ALPHA",
-    "GOLDBEES",
-    "SILVERBEES",
-    "PHARMABEES",
-    "ITBEES",
-    "BANKBEES"
-]
-
-# Dictionary to store extracted records
 symbol_dict = {}
-
-# Process each ETF in the data
 for item in data.get('data', []):
-    symbol = item.get('symbol', '-')
-    
-    # Only process if symbol is in our target list
+    symbol = item.get('symbol')
     if symbol in target_symbols:
-        # Extract required fields with fallback values
-        assets = item.get('assets', '-')
-        
-        # Get the last traded price
-        ltP = item.get('ltP', '-')
-        
-        # Get the change amount and percentage
-        chn = item.get('chn', '-')
         per = item.get('per', '-')
-        
-        # Format percentage change with % sign if it's a valid number
-        if per != '-' and per is not None:
-            try:
-                percent_change_str = f"{per}%"
-            except (ValueError, TypeError):
-                percent_change_str = "-"
-        else:
-            percent_change_str = "-"
-        
-        # Get previous close and 52-week high/low
-        prev_close = item.get('prevClose', '-')
-        wkhi = item.get('wkhi', '-')
-        wklo = item.get('wklo', '-')
-        
-        # Store in dictionary with symbol as key
+        percent = f"{per}%" if per != '-' and per is not None else '-'
         symbol_dict[symbol] = {
             'SYMBOL': symbol,
-            'LTP': ltP,
-            'CHNG': chn,
-            '%CHNG': percent_change_str,
-            'PREVIOUS': prev_close,
-            'Yr Hi': wkhi,
-            'Yr Lo': wklo
+            'LTP': item.get('ltP', '-'),
+            'CHNG': item.get('chn', '-'),
+            '%CHNG': percent,
+            'PREVIOUS': item.get('prevClose', '-'),
+            'Yr Hi': item.get('wkhi', '-'),
+            'Yr Lo': item.get('wklo', '-')
         }
 
-# Create records in the specified order
 records = []
 for symbol in target_symbols:
     if symbol in symbol_dict:
         records.append(symbol_dict[symbol])
     else:
-        # Create empty entry for missing symbols
         records.append({
             'SYMBOL': symbol,
-            'LTP': '-',
-            'CHNG': '-',
-            '%CHNG': '-',
-            'PREVIOUS': '-',
-            'Yr Hi': '-',
-            'Yr Lo': '-'
+            'LTP': '-', 'CHNG': '-', '%CHNG': '-',
+            'PREVIOUS': '-', 'Yr Hi': '-', 'Yr Lo': '-'
         })
 
-# Add timestamp row at the end
-ist = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(ist).strftime('%d-%b %H:%M')
-
-# Add Update Time row with time in the last column
 records.append({
-    'SYMBOL': '',
-    'LTP': '',
-    'CHNG': '',
-    '%CHNG': '',
-    'PREVIOUS': '',
-    'Yr Hi': 'Update Time',
-    'Yr Lo': current_time
+    'SYMBOL': '', 'LTP': '', 'CHNG': '', '%CHNG': '',
+    'PREVIOUS': '', 'Yr Hi': 'Update Time', 'Yr Lo': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')
 })
-os.makedirs('../Data', exist_ok=True)
-# Create DataFrame and save to CSV
-df = pd.DataFrame(records)
-df.to_csv('Data/etf.csv', index=False)
 
-# Print success message
-print(f"ETF data saved to etf.csv successfully!")
-print(f"Total records: {len(target_symbols)} ETFs + 1 timestamp row")
-print(f"Found {len(symbol_dict)} out of {len(target_symbols)} target symbols")
-print(f"Last update: {current_time} IST")
+os.makedirs('Data', exist_ok=True)
+pd.DataFrame(records).to_csv('Data/etf.csv', index=False)
