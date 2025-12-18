@@ -1,13 +1,7 @@
-import requests
-import pandas as pd
+import requests, pandas as pd, os, pytz
 from datetime import datetime
-import pytz
-import os
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-}
-
+headers = {'User-Agent': 'Mozilla/5.0'}
 commodity_symbols = [
     {"name": "Dow Jones", "symbol": "OANDA:US30USD"},
     {"name": "S&P 500", "symbol": "CME_MINI:ES1!"},
@@ -24,69 +18,42 @@ commodity_symbols = [
     {"name": "USD/JPY", "symbol": "OANDA:USDJPY"}
 ]
 
-BASE_API_URL = "https://scanner.tradingview.com/symbol?symbol={symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true&label-product=symbols-performance"
+def format_value(value, key, name):
+    if value is None: return "0.00"
+    try:
+        if key == '% Chng': return f"{float(value):.2f}%"
+        if name in ["VIX", "Dollar Index", "US10Y", "USD/INR", "USD/JPY"] and key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
+            return f"{float(value):.2f}"
+        if key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
+            val = float(value)
+            return str(int(val)) if val.is_integer() else str(val)
+        return str(float(value))
+    except: return "0.00"
+
 commodity_data = []
-
-def format_value(value, default="0.00", is_percent=False):
+for c in commodity_symbols:
     try:
-        if value is None:
-            return default
-        if is_percent:
-            return f"{float(value):.2f}%"
-        return f"{float(value):.2f}"
-    except:
-        return default
-
-for commodity in commodity_symbols:
-    url = BASE_API_URL.format(symbol=commodity["symbol"])
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            commodity_data.append({
-                'Index': commodity["name"],
-                'LTP': format_value(data.get('close')),
-                'Chng': format_value(data.get('change_abs')),
-                '% Chng': format_value(data.get('change'), is_percent=True),
-                'Previous': format_value(data.get('close[1]')),
-                'Yr Hi': format_value(data.get('price_52_week_high')),
-                'Yr Lo': format_value(data.get('price_52_week_low'))
-            })
-        else:
-            commodity_data.append({
-                'Index': commodity["name"],
-                'LTP': "0.00",
-                'Chng': "0.00",
-                '% Chng': "0.00%",
-                'Previous': "0.00",
-                'Yr Hi': "0.00",
-                'Yr Lo': "0.00"
-            })
+        data = requests.get(f"https://scanner.tradingview.com/symbol?symbol={c['symbol']}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true", headers=headers, timeout=5).json()
+        commodity_data.append({
+            'Index': c["name"],
+            'LTP': format_value(data.get('close'), 'LTP', c["name"]),
+            'Chng': format_value(data.get('change_abs'), 'Chng', c["name"]),
+            '% Chng': format_value(data.get('change'), '% Chng', c["name"]),
+            'Previous': format_value(data.get('close[1]'), 'Previous', c["name"]),
+            'Yr Hi': format_value(data.get('price_52_week_high'), 'Yr Hi', c["name"]),
+            'Yr Lo': format_value(data.get('price_52_week_low'), 'Yr Lo', c["name"])
+        })
     except:
         commodity_data.append({
-            'Index': commodity["name"],
-            'LTP': "0.00",
-            'Chng': "0.00",
-            '% Chng': "0.00%",
-            'Previous': "0.00",
-            'Yr Hi': "0.00",
-            'Yr Lo': "0.00"
+            'Index': c["name"],
+            'LTP': "0.00", 'Chng': "0.00", '% Chng': "0.00%",
+            'Previous': "0.00", 'Yr Hi': "0.00", 'Yr Lo': "0.00"
         })
 
-# Add timestamp
-ist = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(ist).strftime('%d-%b %H:%M')
 commodity_data.append({
-    'Index': '',
-    'LTP': '',
-    'Chng': '',
-    '% Chng': '',
-    'Previous': '',
-    'Yr Hi': 'Update Time',
-    'Yr Lo': current_time
+    'Index': '', 'LTP': '', 'Chng': '', '% Chng': '',
+    'Previous': '', 'Yr Hi': 'Update Time', 'Yr Lo': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')
 })
 
-# Save to CSV
 os.makedirs('Data', exist_ok=True)
 pd.DataFrame(commodity_data).to_csv('Data/GLOBAL_DATA.csv', index=False)
