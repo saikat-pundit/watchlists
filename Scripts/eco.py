@@ -35,7 +35,7 @@ records = []
 for item in raw_data:
     date_str = item.get('date', '')
     try:
-        formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b %y")
+        formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b")
     except:
         formatted_date = date_str
     
