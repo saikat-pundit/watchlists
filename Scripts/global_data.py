@@ -21,9 +21,9 @@ commodity_symbols = [
 def format_value(value, key, name):
     if value is None: return "0"
     try:
-        if key == '% Chng': return f"{float(value):.2f}%"
+        if key == '% Chng': return f"{float(value):.1f}%"
         if name in ["VIX", "Dollar Index", "US10Y", "USD/INR", "USD/JPY"] and key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
-            return f"{float(value):.2f}"
+            return f"{float(value):.1f}"
         if key in ['LTP', 'Chng', 'Previous', 'Yr Hi', 'Yr Lo']:
             val = float(value)
             return str(int(val))
