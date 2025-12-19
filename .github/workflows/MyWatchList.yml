@@ -31,50 +31,6 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt  # Uses cached packages
 
-      - name: Check if within market hours (IST: 9:30-15:30, Mon-Fri)
-        id: check_market_hours
-        run: |
-          # Get current UTC time and convert to IST (UTC+5:30)
-          CURRENT_UTC_HOUR=$(date -u +%H)
-          CURRENT_UTC_MINUTE=$(date -u +%M)
-          CURRENT_DAY=$(date -u +%u)  # 1=Monday, 7=Sunday
-          
-          # Convert UTC to IST (add 5 hours 30 minutes)
-          IST_HOUR=$((10#$CURRENT_UTC_HOUR + 5))
-          IST_MINUTE=$((10#$CURRENT_UTC_MINUTE + 30))
-          
-          # Handle minute overflow
-          if [ $IST_MINUTE -ge 60 ]; then
-            IST_HOUR=$((IST_HOUR + 1))
-            IST_MINUTE=$((IST_MINUTE - 60))
-          fi
-          
-          # Handle hour overflow
-          if [ $IST_HOUR -ge 24 ]; then
-            IST_HOUR=$((IST_HOUR - 24))
-          fi
-          
-          # Calculate total minutes for easier comparison
-          TOTAL_MINUTES=$((IST_HOUR * 60 + IST_MINUTE))
-          
-          # Market hours: 9:30 AM to 3:30 PM IST
-          MARKET_OPEN=$((9 * 60 + 30))   # 9:30 AM = 570 minutes
-          MARKET_CLOSE=$((15 * 60 + 30)) # 3:30 PM = 930 minutes
-          
-          # Check conditions
-          if [ $CURRENT_DAY -ge 1 ] && [ $CURRENT_DAY -le 5 ]; then
-            if [ $TOTAL_MINUTES -ge $MARKET_OPEN ] && [ $TOTAL_MINUTES -le $MARKET_CLOSE ]; then
-              echo "market_hours=true" >> $GITHUB_OUTPUT
-              echo "Current IST time: $IST_HOUR:$IST_MINUTE - Within market hours"
-            else
-              echo "market_hours=false" >> $GITHUB_OUTPUT
-              echo "Current IST time: $IST_HOUR:$IST_MINUTE - Outside market hours"
-            fi
-          else
-            echo "market_hours=false" >> $GITHUB_OUTPUT
-            echo "Current day: $CURRENT_DAY - Not a weekday"
-          fi
-
       - name: Run both scripts
         run: |
           python Scripts/fetch_and_save.py
@@ -84,22 +40,10 @@ jobs:
           python Scripts/global_commodity.py
           python Scripts/eco.py
           python Scripts/cash.py
-
-      - name: Run options script only during market hours
-        if: steps.check_market_hours.outputs.market_hours == 'true'
-        run: |
-          python Scripts/nifty_options.py
-
       - name: Commit and push if changed
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           git add Data/nse_all_indices.csv Data/nifty50_stocks_top10.csv Data/etf.csv Data/GLOBAL_DATA.csv Data/GLOBAL_COMMODITIES.csv Data/Economic.csv Data/Cash.csv
-          
-          # Only add Option.csv if it exists (was created during market hours)
-          if [ -f "Data/Option.csv" ]; then
-            git add Data/Option.csv
-          fi
-          
           git commit -m "Auto update $(date)" || exit 0
           git push
