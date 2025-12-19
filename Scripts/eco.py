@@ -42,16 +42,16 @@ for item in raw_data:
     records.append({
         'Date': formatted_date,
         'Time': item.get('time', '')[:5] if item.get('time') else '',
-        'Country': item.get('country', ''),
+        'Area': item.get('country', ''),
         'Title': item.get('title', ''),
-        'Impact': impact_to_stars(item.get('impact', '')),
+        'Imp.': impact_to_stars(item.get('impact', '')),
         'Actual': item.get('actual', ''),
         'Exp.': item.get('expected', ''),
         'Prev.': item.get('previous', '')
     })
 
 records.append({
-    'Date': '', 'Time': '', 'Country': '', 'Title': '', 'Impact': '', 'Actual': '',
+    'Date': '', 'Time': '', 'Area': '', 'Title': '', 'Imp.': '', 'Actual': '',
     'Exp.': 'Update Time:', 'Prev.': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%b %H:%M')
 })
 
