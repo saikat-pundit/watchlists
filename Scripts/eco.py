@@ -38,11 +38,13 @@ for item in raw_data:
         formatted_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b")
     except:
         formatted_date = date_str
-    
+    area = item.get('country', '')
+    if area == "Euro Area":
+        area = "Euro"
     records.append({
         'Date': formatted_date,
         'Time': item.get('time', '')[:5] if item.get('time') else '',
-        'Area': item.get('country', ''),
+        'Area': area,
         'Title': item.get('title', ''),
         'Imp.': impact_to_stars(item.get('impact', '')),
         'Actual': item.get('actual', ''),
