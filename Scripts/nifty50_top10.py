@@ -40,7 +40,7 @@ for item in data['data']:
             'Symbol': symbol,
             'LTP': item.get('lastPrice'),
             'Chng': item.get('change'),
-            '% Chng': percent_change_str,
+            '%': percent_change_str,
             'Previous': item.get('previousClose'),
             'Yr Hi': item.get('yearHigh'),
             'Yr Lo': item.get('yearLow')
