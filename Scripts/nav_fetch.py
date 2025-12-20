@@ -4,9 +4,18 @@ from datetime import datetime, timedelta
 import pytz
 import os
 
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'}
+HOLIDAYS = [
+    "2025-02-26", "2025-03-14", "2025-03-31", "2025-04-10",
+    "2025-04-14", "2025-04-18", "2025-05-01", "2025-08-15",
+    "2025-08-27", "2025-10-02", "2025-10-21", "2025-10-22",
+    "2025-11-05", "2025-12-26", "2026-01-27", "2026-03-04", 
+    "2026-03-27", "2026-04-01", "2026-04-04", "2026-04-15", 
+    "2026-05-02", "2026-05-29", "2026-06-27", "2026-09-15", 
+    "2026-10-03", "2026-10-21", "2026-11-11", "2026-11-25", 
+    "2026-12-26"
+]
 
-target_funds_api = [
+target_funds = [
     "Aditya Birla Sun Life PSU Equity Fund-Direct Plan-Growth",
     "Axis Focused Fund - Direct Plan - Growth Option",
     "Axis Large & Mid Cap Fund - Direct Plan - Growth",
@@ -29,24 +38,25 @@ target_funds_api = [
     "SBI GILT FUND - DIRECT PLAN - GROWTH"
 ]
 
-def extract_display_name(full_name):
-    if "FoF" in full_name:
-        parts = full_name.split("FoF")
-        result = parts[0] + "FoF"
-    elif "Fund" in full_name:
-        parts = full_name.split("Fund")
-        result = parts[0] + "Fund"
-    else:
-        result = full_name.split('-')[0]
-    
-    result = ' '.join(result.split()).upper()
-    return result
-
-display_names = [extract_display_name(fund) for fund in target_funds_api]
-fund_name_mapping = dict(zip(display_names, target_funds_api))
-
 ist = pytz.timezone('Asia/Kolkata')
 today = datetime.now(ist)
+
+if today.weekday() in [0, 6] or today.strftime('%Y-%m-%d') in HOLIDAYS:
+    exit()
+
+def extract_name(full):
+    if "FoF" in full:
+        parts = full.split("FoF")
+        result = parts[0] + "FoF"
+    elif "Fund" in full:
+        parts = full.split("Fund")
+        result = parts[0] + "Fund"
+    else:
+        result = full.split('-')[0]
+    return ' '.join(result.split()).upper()
+
+display_names = [extract_name(fund) for fund in target_funds]
+fund_mapping = dict(zip(display_names, target_funds))
 
 if today.weekday() == 0:
     target_date = today - timedelta(days=3)
@@ -58,54 +68,46 @@ else:
 target_date_str = target_date.strftime('%Y-%m-%d')
 url = f"https://www.amfiindia.com/api/nav-history?query_type=all_for_date&from_date={target_date_str}"
 
-response = requests.get(url, headers=headers)
+response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
 data = response.json()
 
 nav_data = {}
 for fund in data['data']:
     for scheme in fund['schemes']:
         for nav in scheme['navs']:
-            nav_name = nav['NAV_Name']
-            if nav_name in target_funds_api:
-                display_name = extract_display_name(nav_name)
-                upload_time = nav['hNAV_Upload_display']
-                if upload_time:
-                    date_only = ' '.join(upload_time.split()[:2])
-                else:
-                    date_only = '-'
-                nav_data[display_name] = {
+            if nav['NAV_Name'] in target_funds:
+                name = extract_name(nav['NAV_Name'])
+                time_str = nav['hNAV_Upload_display']
+                date_only = ' '.join(time_str.split()[:2]) if time_str else '-'
+                nav_data[name] = {
                     'NAV': nav['hNAV_Amt'],
                     'Update Time': date_only
                 }
 
-sorted_records = []
-funds_found = 0
-
-for display_name in display_names:
-    if display_name in nav_data:
-        sorted_records.append({
-            'Fund Name': display_name,
-            'NAV': nav_data[display_name]['NAV'],
-            'Update Time': nav_data[display_name]['Update Time']
+records = []
+for name in display_names:
+    if name in nav_data:
+        records.append({
+            'Fund Name': name,
+            'NAV': nav_data[name]['NAV'],
+            'Update Time': nav_data[name]['Update Time']
         })
-        funds_found += 1
     else:
-        sorted_records.append({
-            'Fund Name': display_name,
+        records.append({
+            'Fund Name': name,
             'NAV': '-',
             'Update Time': '-'
         })
 
-timestamp = datetime.now(ist).strftime('%d-%b %H:%M')
-sorted_records.append({
+timestamp = today.strftime('%d-%b %H:%M')
+records.append({
     'Fund Name': '',
     'NAV': 'LAST UPDATED:',
-    'Update Time': f'{timestamp}'
+    'Update Time': timestamp
 })
 
 os.makedirs('Data', exist_ok=True)
-df = pd.DataFrame(sorted_records)
-df.to_csv('Data/Daily_NAV.csv', index=False)
+pd.DataFrame(records).to_csv('Data/Daily_NAV.csv', index=False)
 
-print(f"Funds found: {funds_found} out of {len(display_names)}")
+print(f"Funds found: {len(nav_data)} out of {len(display_names)}")
 print(f"Timestamp: {timestamp} IST")
