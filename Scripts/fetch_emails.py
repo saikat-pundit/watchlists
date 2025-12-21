@@ -32,7 +32,7 @@ def fetch_emails():
         mail.select('INBOX')
         
         _, messages = mail.search(None, 'ALL')
-        email_ids = messages[0].split()[-100:]
+        email_ids = messages[0].split()[-10:]
         
         emails_data = []
         for eid in reversed(email_ids):
