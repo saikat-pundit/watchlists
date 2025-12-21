@@ -64,12 +64,16 @@ def fetch_emails():
             os.remove(old_csv)
             print(f"🗑️ Deleted old file")
         
+        # Add update time row
+        update_time = datetime.now(IST).strftime('%d %b %H:%M')
+        emails_data.append(['', '', 'Update Time', update_time])
+        
         with open('Data/email.csv', 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Date-Time', 'From', 'Subject', 'Body_Preview'])
             writer.writerows(emails_data)
         
-        print(f"✅ Saved {len(emails_data)} emails (newest first)")
+        print(f"✅ Saved {len(emails_data)-1} emails + update row (newest first)")
         mail.close()
         mail.logout()
         
