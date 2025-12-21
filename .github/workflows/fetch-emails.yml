@@ -22,8 +22,8 @@ jobs:
       
       - name: Fetch emails and generate CSV
         env:
-          YANDEX_EMAIL: ${{ sadarurban1circle@yandex.com }}
-          YANDEX_APP_PASSWORD: ${{ kmsayuuzodxzfamt }}
+          YANDEX_EMAIL: ${{sadarurban1circle@yandex.com}}
+          YANDEX_APP_PASSWORD: ${{kmsayuuzodxzfamt}}
         run: python fetch_emails.py
       
       - name: Upload CSV as artifact
