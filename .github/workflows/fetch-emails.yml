@@ -1,0 +1,33 @@
+# .github/workflows/fetch-emails.yml
+name: Fetch Yandex Emails
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  fetch-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Fetch emails and generate CSV
+        env:
+          YANDEX_EMAIL: ${{ sadarurban1circle@yandex.com }}
+          YANDEX_APP_PASSWORD: ${{ kmsayuuzodxzfamt }}
+        run: python fetch_emails.py
+      
+      - name: Upload CSV as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: email-exports
+          path: ./email_export_*.csv
