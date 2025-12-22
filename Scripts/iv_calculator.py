@@ -1,9 +1,3 @@
-"""
-IV Calculator Library for Options Trading
-Author: Your Name
-Version: 1.0
-"""
-
 import datetime
 import scipy.stats
 import numpy as np
@@ -461,45 +455,3 @@ class CalcIvGreeks:
                 "RhoPut": round(self.RhoPut(PutIV) / 1000, 3),
             },
         }
-
-
-# Helper functions for easy usage
-def calculate_single_iv_for_option(
-    spot_price: float,
-    future_price: float,
-    strike: float,
-    call_price: float,
-    put_price: float,
-    expiry_datetime: dt,
-    atm_strike: float,
-    atm_call_price: float,
-    atm_put_price: float,
-    use_call_for_atm_and_above: bool = True
-) -> float:
-    """
-    Calculate single IV for an option
-    
-    Args:
-        use_call_for_atm_and_above: 
-            True: Use CALL IV for strikes >= ATM
-            False: Use PUT IV for strikes < ATM
-    """
-    calculator = CalcIvGreeks(
-        SpotPrice=spot_price,
-        FuturePrice=future_price,
-        AtmStrike=atm_strike,
-        AtmStrikeCallPrice=atm_call_price,
-        AtmStrikePutPrice=atm_put_price,
-        ExpiryDateTime=expiry_datetime,
-        StrikePrice=strike,
-        StrikeCallPrice=call_price if call_price > 0 else 0.01,
-        StrikePutPrice=put_price if put_price > 0 else 0.01,
-        tryMatchWith=TryMatchWith.SENSIBULL
-    )
-    
-    if use_call_for_atm_and_above and strike >= atm_strike:
-        iv = calculator.CallImplVol() * 100
-    else:
-        iv = calculator.PutImplVol() * 100
-    
-    return round(iv, 2) if iv > 0 else 0.0
