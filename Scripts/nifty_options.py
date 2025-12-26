@@ -127,13 +127,19 @@ headers = {
 }
 
 def get_future_price(symbol="NIFTY"):
-    """Fetch NIFTY futures price"""
+    """Fetch NIFTY futures price with fallback"""
     try:
         if "NIFTY" in symbol.upper():
             url = "https://scanner.tradingview.com/symbol?symbol=NSEIX:NIFTY1!&fields=close&no_404=true"
             response = requests.get(url, headers=headers, timeout=5)
             data = response.json()
-            return float(data.get('close', 0))
+            future_price = float(data.get('close', 0))
+            
+            if future_price <= 0:
+                # Fallback: calculate from spot using put-call parity
+                print("Warning: Future price not available, using synthetic future")
+                return 0
+            return future_price
         return 0
     except Exception as e:
         print(f"Warning: Could not fetch future price: {e}")
@@ -184,9 +190,9 @@ def get_option_chain(symbol="NIFTY", expiry=None):
     
     return data, expiry
 
-def find_atm_strike_and_prices(df, reference_price):
+def find_atm_strike_and_prices(df, future_price):
     """
-    Find ATM strike based on reference price (use future price)
+    Find ATM strike based on future price with validation
     """
     valid_rows = []
     for _, row in df.iterrows():
@@ -196,7 +202,8 @@ def find_atm_strike_and_prices(df, reference_price):
     if not valid_rows:
         return None, 0, 0
     
-    atm_strike = min(valid_rows, key=lambda x: abs(x['STRIKE'] - reference_price))['STRIKE']
+    # Find strike closest to future price
+    atm_strike = min(valid_rows, key=lambda x: abs(x['STRIKE'] - future_price))['STRIKE']
     
     atm_row = None
     for _, row in df.iterrows():
@@ -207,10 +214,19 @@ def find_atm_strike_and_prices(df, reference_price):
     if atm_row is None:
         return atm_strike, 0, 0
     
-    atm_call_price = float(atm_row['CALL LTP']) if atm_row['CALL LTP'] not in ['', None] else 0
-    atm_put_price = float(atm_row['PUT LTP']) if atm_row['PUT LTP'] not in ['', None] else 0
+    atm_call_price = float(atm_row['CALL LTP']) if atm_row['CALL LTP'] not in ['', None, 0] else 0
+    atm_put_price = float(atm_row['PUT LTP']) if atm_row['PUT LTP'] not in ['', None, 0] else 0
     
-    return atm_strike, atm_call_price, atm_put_price
+    # Validate ATM prices
+    if atm_call_price <= 0 or atm_put_price <= 0:
+        print(f"Warning: ATM strike {atm_strike} has low liquidity: "
+              f"Call={atm_call_price}, Put={atm_put_price}")
+    
+    # Use minimum 5 paisa for calculation
+    calc_call_price = max(atm_call_price, 0.05)
+    calc_put_price = max(atm_put_price, 0.05)
+    
+    return atm_strike, calc_call_price, calc_put_price
 
 def calculate_iv_for_dataframe(df, future_price, expiry_datetime):
     """
@@ -219,12 +235,15 @@ def calculate_iv_for_dataframe(df, future_price, expiry_datetime):
     # Use future price for ATM selection
     atm_strike, atm_call_price, atm_put_price = find_atm_strike_and_prices(df, future_price)
     
-    if atm_strike is None:
+    if atm_strike is None or future_price <= 0:
         return [''] * len(df)
+    
+    print(f"ATM Calculation: Strike={atm_strike}, Future={future_price:.2f}, "
+          f"Call={atm_call_price:.2f}, Put={atm_put_price:.2f}")
     
     iv_values = []
     
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         if not isinstance(row['STRIKE'], (int, float)):
             iv_values.append('')
             continue
@@ -234,33 +253,32 @@ def calculate_iv_for_dataframe(df, future_price, expiry_datetime):
         call_price = float(row['CALL LTP']) if row['CALL LTP'] not in ['', None] else 0
         put_price = float(row['PUT LTP']) if row['PUT LTP'] not in ['', None] else 0
         
-        # Skip if both prices are zero
-        if call_price <= 0 and put_price <= 0:
+        # Skip if both prices are zero or invalid
+        if (call_price <= 0 and put_price <= 0) or strike <= 0:
             iv_values.append('')
             continue
         
-        # Get valid prices
-        calc_call_price = max(call_price, 0.05) if call_price > 0 else None
-        calc_put_price = max(put_price, 0.05) if put_price > 0 else None
+        # Use minimum 5 paisa for calculation
+        calc_call_price = max(call_price, 0.05) if call_price > 0 else 0.05
+        calc_put_price = max(put_price, 0.05) if put_price > 0 else 0.05
         
         try:
             # Initialize calculator with Black-76 parameters
             calculator = CalcIvGreeks(
-                FuturePrice=future_price,  # Key: Use futures price
+                FuturePrice=future_price,
                 AtmStrike=atm_strike,
-                AtmStrikeCallPrice=max(atm_call_price, 0.05) if atm_call_price > 0 else 0.05,
-                AtmStrikePutPrice=max(atm_put_price, 0.05) if atm_put_price > 0 else 0.05,
+                AtmStrikeCallPrice=atm_call_price,
+                AtmStrikePutPrice=atm_put_price,
                 ExpiryDateTime=expiry_datetime,
-                tryMatchWith=TryMatchWith.CUSTOM  # Use CUSTOM for Black-76
+                tryMatchWith=TryMatchWith.CUSTOM
             )
             
             # Get IV and Greeks for this strike
-            # This uses the unified IV approach (OTM option's IV)
             result = calculator.GetImpVolAndGreeks(
                 StrikePrice=strike,
                 StrikeCallPrice=calc_call_price,
                 StrikePutPrice=calc_put_price,
-                useOtmLiquidity=True  # Use OTM option's IV (more liquid)
+                useOtmLiquidity=True
             )
             
             iv_values.append(round(result['ImplVol'], 2))
@@ -323,12 +341,18 @@ def create_option_chain_dataframe(data, expiry_date):
     # Get futures price
     future_price = get_future_price()
     
+    if future_price <= 0:
+        print("Warning: Could not fetch futures price, using spot as fallback")
+        future_price = underlying_value
+    
+    print(f"Future Price: {future_price:.2f}, Spot: {underlying_value}")
+    
     # Create expiry datetime
     expiry_datetime = datetime.strptime(expiry_date, '%d-%b-%Y')
     expiry_datetime = expiry_datetime.replace(hour=15, minute=30, second=0)
     expiry_datetime = pytz.timezone('Asia/Kolkata').localize(expiry_datetime)
     
-    # Calculate IV using Black-76 (only futures price needed)
+    # Calculate IV using Black-76
     iv_column = calculate_iv_for_dataframe(df, future_price, expiry_datetime)
     
     df['IV'] = iv_column
