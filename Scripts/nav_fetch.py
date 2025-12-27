@@ -81,7 +81,7 @@ def main():
     today = datetime.now(ist)
     
     # Check if today is holiday or weekend
-    if today.weekday() in [5, 6] or today.strftime('%Y-%m-%d') in HOLIDAYS:
+    if today.weekday() in [0, 6] or today.strftime('%Y-%m-%d') in HOLIDAYS:
         print(f"{today.strftime('%Y-%m-%d')} is holiday/weekend. Exiting.")
         exit()
     
