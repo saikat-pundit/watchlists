@@ -1,6 +1,4 @@
 Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
-15 Dec,07:30,China,Industrial Production YoY NOV,★★,4.80%,5.00%,4.90%
-15 Dec,12:00,India,WPI Inflation YoY NOV,★★,-0.32%,-0.60%,-1.21%
 16 Dec,19:00,USA,Non Farm Payrolls OCT,★★,-105K,,108K
 16 Dec,19:00,USA,Non Farm Payrolls NOV,★★,64K,50K,-105K
 18 Dec,18:45,Euro,ECB Interest Rate Decision,★★,2.15%,2.15%,2.15%
@@ -26,4 +24,5 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 13 Jan,20:30,USA,New Home Sales SEP,★★,,0.71M,0.8M
 14 Jan,19:00,USA,Retail Sales YoY NOV,★★,,,4.00%
 14 Jan,20:30,USA,Existing Home Sales DEC,★★,,,4.13M
-,,,,,,Update Time:,31-Dec 05:19
+15 Jan,19:00,USA,Retail Sales YoY DEC,★★,,,
+,,,,,,Update Time:,31-Dec 06:00
