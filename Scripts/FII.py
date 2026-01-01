@@ -1,7 +1,7 @@
 import requests
 import csv
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import logging
 
@@ -192,8 +192,9 @@ def save_to_csv(data, filepath):
             row_count += 1
         
         # Add timestamp row at the end in IST
-        ist_time = datetime.utcnow().strftime("%d-%b %H:%M")  # Format: 01-Jan 19:30
-        filtered_data.append(["Update Time:", f"{ist_time} IST"])
+        ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        ist_time_str = ist_time.strftime("%d-%b %H:%M")  # Format: 01-Jan 19:30
+        filtered_data.append(["Update Time:", f"{ist_time_str} IST"])
         
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
