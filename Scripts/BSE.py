@@ -1,11 +1,8 @@
 import requests
 import csv
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 import os
-def get_ist_time():
-    utc_time = datetime.now(timezone.utc)
-    ist_offset = timedelta(hours=5, minutes=30)
-    return utc_time + ist_offset
+
 def fetch_bse_data():
     urls = [
         "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?cat=1&type=2",
@@ -23,7 +20,24 @@ def fetch_bse_data():
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
-                all_data.extend(response.json().get("RealTime", []))
+                data = response.json()
+                # Handle RealTime data (cat 1 & 2)
+                if "RealTime" in data:
+                    all_data.extend(data["RealTime"])
+                # Handle EOD data (cat 3)
+                elif "EOD" in data:
+                    # Convert EOD format to match RealTime format
+                    for item in data["EOD"]:
+                        converted = {
+                            "IndexName": item.get("IndicesWatchName", "").strip(),
+                            "Curvalue": item.get("Curvalue", 0),
+                            "Chg": item.get("CHNG", 0),
+                            "ChgPer": item.get("CHNGPER", 0),
+                            "Prev_Close": item.get("PrevDayClose", 0),
+                            "Week52High": "-",
+                            "Week52Low": "-"
+                        }
+                        all_data.append(converted)
         except:
             continue
     
@@ -35,14 +49,24 @@ def transform_data(original_data):
     
     transformed = []
     for item in original_data:
+        # Handle missing values with defaults
+        week52high = item.get("Week52High", "-")
+        week52low = item.get("Week52Low", "-")
+        
+        # Format week52 values
+        if week52high != "-" and week52high != "":
+            week52high = f'{float(week52high):.2f}'
+        if week52low != "-" and week52low != "":
+            week52low = f'{float(week52low):.2f}'
+        
         row = [
-            item.get("IndexName", ""),
-            f'{item.get("Curvalue", 0):.2f}',
-            f'{item.get("Chg", 0):.2f}',
-            f'{item.get("ChgPer", 0):.2f}',
-            f'{item.get("Prev_Close", 0):.2f}',
-            f'{item.get("Week52High", 0):.2f}',
-            f'{item.get("Week52Low", 0):.2f}'
+            item.get("IndexName", "-"),
+            f'{float(item.get("Curvalue", 0)):.2f}',
+            f'{float(item.get("Chg", 0)):.2f}',
+            f'{float(item.get("ChgPer", 0)):.2f}',
+            f'{float(item.get("Prev_Close", 0)):.2f}',
+            week52high,
+            week52low
         ]
         transformed.append(row)
     
@@ -58,7 +82,8 @@ def save_to_csv(data, filename="Data/BSE.csv"):
         writer.writerow(csv_headers)
         writer.writerows(data)
         
-        timestamp = get_ist_time().strftime("%d-%b %H:%M")
+        # IST timestamp
+        timestamp = (datetime.now() + timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M")
         writer.writerow(["", "", "", "", "", "Update Time", timestamp])
 
 if __name__ == "__main__":
