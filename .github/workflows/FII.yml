@@ -2,73 +2,115 @@ name: Update FII Data
 
 on:
   schedule:
-    # Run daily at 6 AM UTC (11:30 AM IST)
-    - cron: '0 6 * * *'
+    # Run daily at 7 AM UTC (12:30 PM IST) - after market data is updated
+    - cron: '0 7 * * *'
   workflow_dispatch:  # Allow manual triggering
   push:
+    branches: [ main ]
     paths:
-      - 'Scripts/FII.py'  # Run when script changes
+      - 'Scripts/FII.py'
+      - '.github/workflows/update-fii.yml'
 
 jobs:
-  update-fii-data:
+  update-fii:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # Fetch all history for proper git diff
-      
+        fetch-depth: 0
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
-        
-    - name: Install dependencies
+        python-version: '3.10'
+    
+    - name: Install Python dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install requests
-        
-    - name: Run FII data script
+    
+    - name: Run FII Data Fetcher
+      id: run-script
       run: |
+        echo "📊 Starting FII data fetch..."
         python Scripts/FII.py
-        echo "Script execution completed"
+        EXIT_CODE=$?
         
-    - name: Verify CSV file was created
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "✅ Script executed successfully"
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Script failed with exit code $EXIT_CODE"
+          echo "status=failure" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Check if CSV file was created
+      id: check-file
       run: |
         if [ -f "Data/FII.csv" ]; then
-          echo "✅ CSV file created successfully"
-          echo "First few lines of CSV:"
-          head -5 Data/FII.csv
+          echo "📁 CSV file exists"
+          echo "file_exists=true" >> $GITHUB_OUTPUT
+          
+          # Count lines in CSV
+          LINE_COUNT=$(wc -l < Data/FII.csv)
+          echo "lines=$LINE_COUNT" >> $GITHUB_OUTPUT
+          
+          # Show first few lines
+          echo "📋 First 3 lines of CSV:"
+          head -3 Data/FII.csv
         else
-          echo "❌ CSV file was not created"
-          exit 1
+          echo "❌ CSV file does not exist"
+          echo "file_exists=false" >> $GITHUB_OUTPUT
+          echo "lines=0" >> $GITHUB_OUTPUT
         fi
-        
-    - name: Check for changes
-      id: git-check
+    
+    - name: Setup Git config
+      if: steps.check-file.outputs.file_exists == 'true'
       run: |
-        git config --global user.name 'GitHub Actions Bot'
+        git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add Data/
+    
+    - name: Commit updated data
+      if: steps.check-file.outputs.file_exists == 'true'
+      id: commit
+      run: |
+        git add Data/FII.csv
         
-        # Check if there are changes to commit
         if git diff --cached --quiet; then
-          echo "has_changes=false" >> $GITHUB_OUTPUT
-          echo "No changes to commit"
+          echo "📝 No changes to commit"
+          echo "changes=false" >> $GITHUB_OUTPUT
         else
-          echo "has_changes=true" >> $GITHUB_OUTPUT
-          echo "Changes detected, will commit"
+          echo "📝 Changes detected, creating commit..."
+          git commit -m "🤖 Auto-update FII data [$(date +'%Y-%m-%d %H:%M')]
+          
+          • Rows: ${{ steps.check-file.outputs.lines }}
+          • Auto-updated by GitHub Actions"
+          echo "✅ Commit created"
+          echo "changes=true" >> $GITHUB_OUTPUT
         fi
-        
-    - name: Commit and push if changes exist
-      if: steps.git-check.outputs.has_changes == 'true'
+    
+    - name: Push changes
+      if: steps.commit.outputs.changes == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
+    
+    - name: Create success summary
+      if: always()
       run: |
-        git commit -m "🤖 Auto-update FII data [$(date +'%Y-%m-%d %H:%M')]"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Output status
-      run: |
-        echo "✅ Workflow completed successfully"
-        echo "📊 Data saved to: Data/FII.csv"
+        echo "## 📊 FII Data Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ${{ steps.run-script.outputs.status == 'success' && '✅ Success' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**CSV File:** ${{ steps.check-file.outputs.file_exists == 'true' && 'Data/FII.csv' || 'Not created' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Rows in CSV:** ${{ steps.check-file.outputs.lines }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Run Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "*This update was performed automatically by GitHub Actions*" >> $GITHUB_STEP_SUMMARY
