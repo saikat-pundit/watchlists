@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for proper git diff
       
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -24,27 +26,49 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install requests
         
     - name: Run FII data script
       run: |
-        cd Scripts
         python Scripts/FII.py
+        echo "Script execution completed"
+        
+    - name: Verify CSV file was created
+      run: |
+        if [ -f "Data/FII.csv" ]; then
+          echo "✅ CSV file created successfully"
+          echo "First few lines of CSV:"
+          head -5 Data/FII.csv
+        else
+          echo "❌ CSV file was not created"
+          exit 1
+        fi
         
     - name: Check for changes
       id: git-check
       run: |
-        git config --global user.name 'GitHub Actions'
-        git config --global user.email 'actions@github.com'
-        git add -A
+        git config --global user.name 'GitHub Actions Bot'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add Data/
+        
+        # Check if there are changes to commit
         if git diff --cached --quiet; then
-          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "No changes to commit"
         else
-          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected, will commit"
         fi
         
     - name: Commit and push if changes exist
-      if: steps.git-check.outputs.changes == 'true'
+      if: steps.git-check.outputs.has_changes == 'true'
       run: |
-        git commit -m "🤖 Auto-update FII data - $(date +'%Y-%m-%d %H:%M')"
+        git commit -m "🤖 Auto-update FII data [$(date +'%Y-%m-%d %H:%M')]"
         git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Output status
+      run: |
+        echo "✅ Workflow completed successfully"
+        echo "📊 Data saved to: Data/FII.csv"
