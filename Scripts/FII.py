@@ -1,13 +1,53 @@
 import requests
 import csv
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 import logging
+import calendar
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def get_previous_month_15_or_end():
+    """Get previous month's 15th or last day based on today's date for fortnightly reports."""
+    today = datetime.now()
+    
+    # Get 15th of current month
+    current_month_15th = today.replace(day=15)
+    
+    if today <= current_month_15th:
+        # On or before 15th of current month - fetch previous month's end
+        if today.month == 1:
+            target_month = 12
+            target_year = today.year - 1
+        else:
+            target_month = today.month - 1
+            target_year = today.year
+        
+        # Get last day of previous month
+        _, prev_last_day = calendar.monthrange(target_year, target_month)
+        selected_day = prev_last_day
+        logger.info(f"📅 Date logic: Today ({today.strftime('%d-%b')}) ≤ 15th → Fetching PREVIOUS month's END: {selected_day}-{calendar.month_abbr[target_month]}-{target_year}")
+    else:
+        # After 15th of current month - fetch current month's 15th
+        target_month = today.month
+        target_year = today.year
+        selected_day = 15
+        logger.info(f"📅 Date logic: Today ({today.strftime('%d-%b')}) > 15th → Fetching CURRENT month's 15th: {selected_day}-{calendar.month_abbr[target_month]}-{target_year}")
+    
+    # Get month abbreviation (Jan, Feb, etc.)
+    month_abbr = calendar.month_abbr[target_month]
+    
+    return month_abbr, selected_day, target_year
+
+def generate_url():
+    """Generate dynamic URL with appropriate date."""
+    month_abbr, day, year = get_previous_month_15_or_end()
+    url = f"https://www.fpi.nsdl.co.in/web/StaticReports/Fortnightly_Sector_wise_FII_Investment_Data/FIIInvestSector_{month_abbr}{day}{year}.html"
+    logger.info(f"🌐 Generated URL: {url}")
+    return url
 
 def fetch_with_retry(url, max_retries=3, delay=5):
     """Fetch URL with retry logic."""
@@ -17,18 +57,26 @@ def fetch_with_retry(url, max_retries=3, delay=5):
     
     for attempt in range(max_retries):
         try:
+            logger.info(f"🔍 Attempt {attempt + 1}/{max_retries} to fetch data...")
             response = requests.get(url, headers=headers, timeout=30, verify=True)
             response.raise_for_status()
-            logger.info(f"Fetched {len(response.text)} characters")
+            
+            # Check if page contains data or error message
+            if "404" in response.text or "Page Not Found" in response.text or len(response.text) < 1000:
+                logger.warning(f"⚠️  Page exists but may not contain valid data (length: {len(response.text)} chars)")
+                return response.text
+            
+            logger.info(f"✅ Successfully fetched {len(response.text)} characters")
             return response.text
             
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Attempt {attempt + 1} failed: {e}")
+            logger.warning(f"⚠️  Attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
+                logger.info(f"⏳ Waiting {delay} seconds before retry...")
                 time.sleep(delay)
                 delay *= 2
             else:
-                logger.error(f"All {max_retries} attempts failed")
+                logger.error(f"❌ All {max_retries} attempts failed")
                 raise
     
     return None
@@ -128,7 +176,7 @@ def clean_html_content(text):
     
     return text.strip()
 
-def save_to_csv(data, filepath):
+def save_to_csv(data, filepath, url):
     """Save data to CSV file."""
     try:
         # Extract only columns at index 1 and 86 (0-indexed)
@@ -191,26 +239,37 @@ def save_to_csv(data, filepath):
             
             row_count += 1
         
+        # Check if we have meaningful data (more than just header and timestamp rows)
+        if len(filtered_data) <= 2:  # Only header and timestamp rows
+            logger.warning("⚠️  No meaningful data found in HTML table")
+            return False, 0
+        
         # Add timestamp row at the end in IST
         ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
         ist_time_str = ist_time.strftime("%d-%b %H:%M")  # Format: 01-Jan 19:30
-        filtered_data.append(["Update Time:", f"{ist_time_str}"])
+        filtered_data.append(["Update Time:", f"{ist_time_str} IST"])
+        
+        # Add URL info row
+        filtered_data.append(["Data Source:", url])
         
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerows(filtered_data)
         
-        logger.info(f"Data saved to {filepath} ({len(filtered_data)} rows)")
-        return True
+        logger.info(f"💾 Data saved to {filepath} ({len(filtered_data)} rows)")
+        return True, len(filtered_data)
     except Exception as e:
-        logger.error(f"Failed to save CSV: {e}")
-        return False
+        logger.error(f"❌ Failed to save CSV: {e}")
+        return False, 0
 
 def main():
     """Main function to fetch and process FII data."""
-    logger.info("FII Data Fetcher - NSDL Fortnightly Sector-wise Investment")
+    logger.info("=" * 60)
+    logger.info("📊 FII Data Fetcher - NSDL Fortnightly Sector-wise Investment")
+    logger.info("=" * 60)
     
-    url = "https://www.fpi.nsdl.co.in/web/StaticReports/Fortnightly_Sector_wise_FII_Investment_Data/FIIInvestSector_Dec152025.html"
+    # Generate dynamic URL
+    url = generate_url()
     
     # Create Data directory if it doesn't exist
     script_dir = Path(__file__).parent
@@ -218,53 +277,125 @@ def main():
     data_dir.mkdir(exist_ok=True)
     csv_path = data_dir / 'FII.csv'
     
-    # If old FII.csv exists, it will be replaced automatically when we write to it
+    # Check if old FII.csv exists
+    existing_data = None
+    existing_rows = 0
     if csv_path.exists():
-        logger.info(f"Replacing existing file: {csv_path}")
+        logger.info(f"📂 Existing file found: {csv_path}")
+        try:
+            # Read existing data to preserve it if new fetch fails
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                existing_data = f.read()
+                existing_rows = len(f.readlines())
+            logger.info(f"📊 Existing data has {existing_rows} rows")
+        except Exception as e:
+            logger.warning(f"⚠️  Could not read existing CSV: {e}")
     
     try:
         # Fetch data with retry logic
+        logger.info("⏳ Fetching data from NSDL...")
         html_content = fetch_with_retry(url)
         
         if not html_content:
-            logger.error("Failed to fetch HTML content")
+            logger.error("❌ Failed to fetch HTML content")
+            # Restore original data if fetch failed
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Restoring original data (fetch failed)")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Original data restored ({existing_rows} rows)")
+            return False
+        
+        # Check if page seems to have valid data
+        if len(html_content) < 5000 or "No Data" in html_content or "no data" in html_content:
+            logger.warning(f"⚠️  Page may not contain valid data (only {len(html_content)} characters)")
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Keeping existing data (no valid new data found)")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Kept existing data ({existing_rows} rows)")
+            else:
+                logger.warning("📭 No data available and no existing data to restore")
             return False
         
         # Find the first table in HTML (simplified version)
         table_start = html_content.find('<table')
         if table_start == -1:
-            logger.error("No table found in HTML")
+            logger.error("❌ No table found in HTML")
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Restoring original data (no table found)")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Original data restored ({existing_rows} rows)")
             return False
         
         table_end = html_content.find('</table>', table_start)
         if table_end == -1:
-            logger.error("Incomplete table in HTML")
+            logger.error("❌ Incomplete table in HTML")
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Restoring original data (incomplete table)")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Original data restored ({existing_rows} rows)")
             return False
         
         table_html = html_content[table_start:table_end + 8]
         
         # Extract data from the table
+        logger.info("🔍 Extracting data from HTML table...")
         table_data = extract_table_data(table_html)
         
         if not table_data:
-            logger.error("No data extracted from table")
+            logger.error("❌ No data extracted from table")
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Restoring original data (no data extracted)")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Original data restored ({existing_rows} rows)")
             return False
         
-        logger.info(f"Extracted {len(table_data)} rows")
+        logger.info(f"📈 Extracted {len(table_data)} raw rows from HTML")
         
         # Save to CSV (replaces if exists)
-        success = save_to_csv(table_data, csv_path)
+        logger.info("💾 Saving data to CSV...")
+        success, new_row_count = save_to_csv(table_data, csv_path, url)
         
         if success:
-            logger.info(f"✅ Success! Data saved to {csv_path}")
+            logger.info("=" * 60)
+            logger.info(f"✅ LATEST DATA FETCHED SUCCESSFULLY!")
+            logger.info(f"📁 File: {csv_path}")
+            logger.info(f"📊 New rows: {new_row_count}")
+            logger.info(f"🔄 Replaced: {existing_rows} old rows")
+            logger.info(f"🌐 Source: {url}")
+            logger.info(f"🕐 Updated at: {(datetime.utcnow() + timedelta(hours=5, minutes=30)).strftime('%d-%b %H:%M IST')}")
+            logger.info("=" * 60)
             return True
         else:
+            # If save fails, restore original data
+            if existing_data and csv_path.exists():
+                logger.info("🔄 Restoring original data due to save failure")
+                with open(csv_path, 'w', encoding='utf-8') as f:
+                    f.write(existing_data)
+                logger.info(f"✅ Original data restored ({existing_rows} rows)")
             return False
             
     except Exception as e:
         logger.error(f"❌ Error in execution: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        # Restore original data on any exception
+        if existing_data and csv_path.exists():
+            logger.info("🔄 Restoring original data due to exception")
+            with open(csv_path, 'w', encoding='utf-8') as f:
+                f.write(existing_data)
+            logger.info(f"✅ Original data restored ({existing_rows} rows)")
         return False
 
 if __name__ == "__main__":
+    logger.info("🚀 Starting FII Data Fetcher...")
     success = main()
+    if success:
+        logger.info("✨ Script completed successfully!")
+    else:
+        logger.info("⚠️  Script completed with warnings/errors")
     exit(0 if success else 1)
