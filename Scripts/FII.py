@@ -1,6 +1,5 @@
 import requests
 import csv
-import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -13,49 +12,26 @@ logger = logging.getLogger(__name__)
 def fetch_with_retry(url, max_retries=3, delay=5):
     """Fetch URL with retry logic."""
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     
     for attempt in range(max_retries):
         try:
-            logger.info(f"Attempt {attempt + 1}/{max_retries} to fetch data from NSDL...")
             response = requests.get(url, headers=headers, timeout=30, verify=True)
             response.raise_for_status()
-            logger.info(f"Successfully fetched data ({len(response.text)} characters)")
+            logger.info(f"Fetched {len(response.text)} characters")
             return response.text
             
         except requests.exceptions.RequestException as e:
             logger.warning(f"Attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                logger.info(f"Waiting {delay} seconds before retry...")
                 time.sleep(delay)
-                delay *= 2  # Exponential backoff
+                delay *= 2
             else:
                 logger.error(f"All {max_retries} attempts failed")
                 raise
     
     return None
-
-def parse_table_html(html_content):
-    """Parse HTML table and extract data."""
-    tables = []
-    start = 0
-    
-    while True:
-        # Find the next table
-        table_start = html_content.find('<table', start)
-        if table_start == -1:
-            break
-            
-        table_end = html_content.find('</table>', table_start)
-        if table_end == -1:
-            break
-            
-        table_html = html_content[table_start:table_end + 8]
-        tables.append(table_html)
-        start = table_end + 8
-    
-    return tables
 
 def extract_table_data(table_html):
     """Extract data from HTML table."""
@@ -63,7 +39,6 @@ def extract_table_data(table_html):
     row_start = 0
     
     while True:
-        # Find table rows (tr tags)
         tr_start = table_html.find('<tr', row_start)
         if tr_start == -1:
             break
@@ -147,19 +122,37 @@ def clean_html_content(text):
     for entity, replacement in replacements.items():
         text = text.replace(entity, replacement)
     
-    # Clean whitespace
+    # Clean whitespace and REPLACE COMMAS
     text = ' '.join(text.split())
+    text = text.replace(',', '')  # Remove all commas
     
     return text.strip()
 
 def save_to_csv(data, filepath):
     """Save data to CSV file."""
     try:
+        # Extract only columns at index 1 and 86 (0-indexed)
+        filtered_data = []
+        for row in data:
+            if len(row) > 86:  # Ensure row has at least 87 columns
+                # Keep only columns 1 and 86
+                filtered_row = [row[1], row[86]]
+                filtered_data.append(filtered_row)
+            elif len(row) > 1:  # For header row or rows with fewer columns
+                # For header row (index 0), show 5th column data (index 4)
+                if len(filtered_data) == 0 and len(row) > 4:
+                    filtered_row = [row[4], row[4]]  # Use 5th column for both positions
+                else:
+                    # For other rows, just take what's available
+                    filtered_row = [row[1] if len(row) > 1 else "", 
+                                   row[-1] if len(row) > 0 else ""]
+                filtered_data.append(filtered_row)
+        
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerows(data)
+            writer.writerows(filtered_data)
         
-        logger.info(f"Data saved to {filepath} ({len(data)} rows)")
+        logger.info(f"Data saved to {filepath} ({len(filtered_data)} rows)")
         return True
     except Exception as e:
         logger.error(f"Failed to save CSV: {e}")
@@ -167,11 +160,8 @@ def save_to_csv(data, filepath):
 
 def main():
     """Main function to fetch and process FII data."""
-    logger.info("=" * 60)
     logger.info("FII Data Fetcher - NSDL Fortnightly Sector-wise Investment")
-    logger.info("=" * 60)
     
-    # URL for NSDL FII data (update the date in the URL as needed)
     url = "https://www.fpi.nsdl.co.in/web/StaticReports/Fortnightly_Sector_wise_FII_Investment_Data/FIIInvestSector_Dec152025.html"
     
     # Create Data directory if it doesn't exist
@@ -179,6 +169,10 @@ def main():
     data_dir = script_dir.parent / 'Data'
     data_dir.mkdir(exist_ok=True)
     csv_path = data_dir / 'FII.csv'
+    
+    # If old FII.csv exists, it will be replaced automatically when we write to it
+    if csv_path.exists():
+        logger.info(f"Replacing existing file: {csv_path}")
     
     try:
         # Fetch data with retry logic
@@ -188,34 +182,39 @@ def main():
             logger.error("Failed to fetch HTML content")
             return False
         
-        # Parse tables from HTML
-        tables = parse_table_html(html_content)
-        
-        if not tables:
-            logger.error("No tables found in HTML")
+        # Find the first table in HTML (simplified version)
+        table_start = html_content.find('<table')
+        if table_start == -1:
+            logger.error("No table found in HTML")
             return False
         
-        logger.info(f"Found {len(tables)} table(s) in HTML")
+        table_end = html_content.find('</table>', table_start)
+        if table_end == -1:
+            logger.error("Incomplete table in HTML")
+            return False
         
-        # Extract data from the first table (usually the main data table)
-        table_data = extract_table_data(tables[0])
+        table_html = html_content[table_start:table_end + 8]
+        
+        # Extract data from the table
+        table_data = extract_table_data(table_html)
         
         if not table_data:
             logger.error("No data extracted from table")
             return False
         
-        # Save to CSV
+        logger.info(f"Extracted {len(table_data)} rows, showing columns 1 and 86 only")
+        
+        # Save to CSV (replaces if exists)
         success = save_to_csv(table_data, csv_path)
         
         if success:
+            logger.info(f"✅ Success! Data saved to {csv_path}")
             return True
         else:
             return False
             
     except Exception as e:
-        logger.error(f"❌ Error in main execution: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.error(f"❌ Error in execution: {e}")
         return False
 
 if __name__ == "__main__":
