@@ -289,14 +289,11 @@ def save_to_csv(data, filepath, url, date_str):
         if len(filtered_data) <= 2:
             logger.info("No meaningful data found")
             return False, 0
-        
-        # Add data date info row
-        filtered_data.append(["Data Date:", date_str])
-        
+
         # Add timestamp row at the end in IST
         ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
         ist_time_str = ist_time.strftime("%d-%b %H:%M")
-        filtered_data.append(["Update Time:", f"{ist_time_str} IST"])
+        filtered_data.append(["Update Time:", f"{ist_time_str}"])
         
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
