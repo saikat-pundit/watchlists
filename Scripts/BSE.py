@@ -1,8 +1,11 @@
 import requests
 import csv
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
-
+def get_ist_time():
+    utc_time = datetime.now(timezone.utc)
+    ist_offset = timedelta(hours=5, minutes=30)
+    return utc_time + ist_offset
 def fetch_bse_data():
     urls = [
         "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?cat=1&type=2",
@@ -55,7 +58,7 @@ def save_to_csv(data, filename="Data/BSE.csv"):
         writer.writerow(csv_headers)
         writer.writerows(data)
         
-        timestamp = datetime.now().strftime("%d-%b %H:%M")
+        timestamp = get_ist_time().strftime("%d-%b %H:%M")
         writer.writerow(["", "", "", "", "", "Update Time", timestamp])
 
 if __name__ == "__main__":
