@@ -134,30 +134,62 @@ def save_to_csv(data, filepath):
         # Extract only columns at index 1 and 86 (0-indexed)
         filtered_data = []
         
+        # Store currency unit for later use
+        currency_unit = ""
+        
         # Process header row
         if data and len(data) > 0:
             # First row - use 5th column data (index 4), but only in first column
-            if len(data[0]) > 4:
-                # First column: 5th column data, Second column: empty
-                filtered_data.append([data[0][4], ""])
+            if len(data[0]) > 5:
+                filtered_data.append([data[0][5], ""])
             else:
                 filtered_data.append(["", ""])
         
-        # Process data rows (skip header)
+        # Process remaining rows
+        row_count = 0
         for i, row in enumerate(data[1:], 1):
             # Skip empty rows
             if not any(cell.strip() for cell in row):
                 continue
                 
+            # Get currency unit from second row (index 1 in original data)
+            if i == 1 and len(row) > 0:
+                # Extract USD Mn or other currency info
+                if any(unit in cell for unit in ["USD", "INR", "Rs"] for cell in row):
+                    for cell in row:
+                        if any(unit in cell for unit in ["USD", "INR", "Rs"]):
+                            currency_unit = cell.strip()
+                            break
+                # Skip the currency unit row
+                continue
+                
+            # Skip the third row (empty or useless row)
+            if i == 2:
+                continue
+                
+            # Process data rows
             if len(row) > 86:  # Ensure row has at least 87 columns
                 # Keep only columns 1 and 86
                 filtered_row = [row[1], row[86]]
                 filtered_data.append(filtered_row)
             elif len(row) > 1:
-                # For rows with fewer columns
-                filtered_row = [row[1] if len(row) > 1 else "", 
-                               row[-1] if len(row) > 0 else ""]
+                # For header row (Sectors, Equity)
+                if "Sectors" in row[0] or "Equity" in row[0]:
+                    # Add currency unit to Equity column if available
+                    if "Equity" in row[-1] or row_count == 0:
+                        if currency_unit:
+                            filtered_row = [row[0], f"Equity({currency_unit})"]
+                        else:
+                            filtered_row = [row[0], "Equity"]
+                    else:
+                        filtered_row = [row[0], row[-1]]
+                else:
+                    # For other rows
+                    filtered_row = [row[0] if len(row) > 0 else "", 
+                                   row[-1] if len(row) > 0 else ""]
                 filtered_data.append(filtered_row)
+            
+            row_count += 1
         
         # Add timestamp row at the end in IST
         ist_time = datetime.utcnow().strftime("%d-%b %H:%M")  # Format: 01-Jan 19:30
