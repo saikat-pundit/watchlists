@@ -379,13 +379,13 @@ def create_option_chain_dataframe(data, expiry_date):
     df = pd.DataFrame(option_data)
     
     # Get futures price
-    future_price = get_future_price(data=data)
+    future_price = get_future_price(data=data)  # Line 220-221
 
-if future_price <= 0:
-    print("Warning: Could not calculate synthetic future, using spot as fallback")
-    future_price = underlying_value
+    if future_price <= 0:  # Line 223 - FIXED INDENTATION
+        print("Warning: Could not calculate synthetic future, using spot as fallback")
+        future_price = underlying_value
     
-    print(f"Future Price: {future_price:.2f}, Spot: {underlying_value}")
+    print(f"Future Price: {future_price:.2f}, Spot: {underlying_value}")  # Line 227
     
     # Create expiry datetime
     expiry_datetime = datetime.strptime(expiry_date, '%d-%b-%Y')
