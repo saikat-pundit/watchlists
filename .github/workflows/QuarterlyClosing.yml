@@ -1,0 +1,82 @@
+name: Process CSV Data and Extract Quarterly Closing
+
+on:
+  workflow_dispatch:  # Manual trigger from Actions tab
+  schedule:
+    - cron: '0 0 1 */3 *'  # Runs quarterly on 1st day at midnight
+
+jobs:
+  process-csv:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Process CSV files and extract data
+      run: |
+        echo "Processing CSV files..."
+        
+        # Create header for output file
+        echo "Index_Name,Closing_Value" > Data/QuarterlyClosing.csv
+        
+        # Read each required index from BSE.csv
+        {
+          echo "NIFTY 50"
+          echo "FINANCIAL SERVICES"
+          echo "BSE Information Technology"
+          echo "BSE OIL & GAS"
+          echo "AUTO"
+          echo "FMCG"
+          echo "PHARMA"
+          echo "BSE CAPITAL GOODS"
+          echo "BSE POWER"
+          echo "BSE Consumer Discretionary"
+          echo "BSE Telecommunication"
+          echo "METAL"
+          echo "BSE CONSUMER DURABLES"
+          echo "REALTY"
+          echo "SERVICES SECTOR"
+          echo "BSE India Infrastructure Index"
+          echo "BSE Commodities"
+        } | while read -r index_name; do
+          
+          # Try to find in BSE.csv first
+          if [ -f "Data/BSE.csv" ]; then
+            # Extract second column where first column matches (case-insensitive)
+            result=$(awk -F',' -v idx="$index_name" '
+            BEGIN {IGNORECASE=1; found=0} 
+            $1 ~ idx {print $2; found=1; exit} 
+            END {if (!found) print "N/A"}' "Data/BSE.csv")
+          else
+            result="N/A"
+          fi
+          
+          # If not found in BSE.csv, try nse_all_indices.csv
+          if [ "$result" = "N/A" ] || [ -z "$result" ]; then
+            if [ -f "Data/nse_all_indices.csv" ]; then
+              result=$(awk -F',' -v idx="$index_name" '
+              BEGIN {IGNORECASE=1; found=0} 
+              $1 ~ idx {print $2; found=1; exit} 
+              END {if (!found) print "N/A"}' "Data/nse_all_indices.csv")
+            fi
+          fi
+          
+          # Clean the result (remove quotes, extra spaces)
+          cleaned_result=$(echo "$result" | sed 's/"//g' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          
+          # Append to output file
+          echo "\"$index_name\",\"$cleaned_result\"" >> Data/QuarterlyClosing.csv
+          
+        done
+        
+        echo "Data extraction completed!"
+        echo "Contents of QuarterlyClosing.csv:"
+        cat Data/QuarterlyClosing.csv
+        
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Data/QuarterlyClosing.csv
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update quarterly closing data [automated]" && git push)
