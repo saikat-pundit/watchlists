@@ -18,30 +18,62 @@ jobs:
         # Set timezone to IST
         export TZ="Asia/Kolkata"
         
-        # Get current hour and minute in IST
+        # Get current date and time in IST
+        CURRENT_DAY=$(date +'%d')
+        CURRENT_MONTH=$(date +'%m')
+        CURRENT_YEAR=$(date +'%Y')
         CURRENT_HOUR=$(date +'%H')
         CURRENT_MINUTE=$(date +'%M')
         CURRENT_TIME=$(date +'%H:%M')
+        CURRENT_DATE=$(date +'%d-%m-%Y')
         
-        # Check if current time is between 00:00 and 05:15
-        if [[ "$CURRENT_TIME" < "08:55" ]] || [[ "$CURRENT_TIME" == "08:55" ]]; then
-          if [[ "$CURRENT_HOUR" -ge 0 ]]; then
-            echo "✅ Current time $CURRENT_TIME IST is within allowed window (00:00-08:55 IST)"
+        # Check if today is 1st or 16th of the month
+        if [[ "$CURRENT_DAY" != "01" ]] && [[ "$CURRENT_DAY" != "16" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "❌ Today is $CURRENT_DATE - not the 1st or 16th of the month"
+            echo "❌ Manual trigger is only allowed on 1st and 16th of each month"
+            echo "allowed=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            # For schedule trigger on wrong day (shouldn't happen with cron)
+            echo "Schedule trigger on non-allowed day - allowing for safety"
+            echo "allowed=true" >> $GITHUB_OUTPUT
+          fi
+        else
+          # Today is 1st or 16th, check time for manual triggers
+          echo "✅ Today is $CURRENT_DATE - allowed day (1st or 16th)"
+          
+          # For schedule triggers, always allow on allowed days
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "Schedule trigger on allowed day - bypassing time check"
             echo "allowed=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-        fi
-        
-        # If workflow_dispatch trigger, check time
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "❌ Current time $CURRENT_TIME IST is outside allowed window (00:00-08:55 IST)"
-          echo "❌ Manual trigger is only allowed between 00:00 and 08:55 IST"
-          echo "allowed=false" >> $GITHUB_OUTPUT
-          exit 1
-        else
-          # For schedule trigger, always allow
-          echo "Schedule trigger - bypassing time check"
-          echo "allowed=true" >> $GITHUB_OUTPUT
+          
+          # For workflow_dispatch, check time window (00:00 to 08:55 IST)
+          # Convert time to minutes for easier comparison
+          CURRENT_HOUR_INT=$((10#$CURRENT_HOUR))
+          CURRENT_MINUTE_INT=$((10#$CURRENT_MINUTE))
+          CURRENT_MINUTES=$((CURRENT_HOUR_INT * 60 + CURRENT_MINUTE_INT))
+          
+          # Calculate 08:55 in minutes
+          END_HOUR=8
+          END_MINUTE=55
+          END_MINUTES=$((END_HOUR * 60 + END_MINUTE))
+          
+          echo "Current time: $CURRENT_TIME IST ($CURRENT_MINUTES minutes)"
+          echo "Allowed until: 08:55 IST ($END_MINUTES minutes)"
+          
+          # Check if current time is between 00:00 and 08:55
+          if [[ $CURRENT_MINUTES -ge 0 ]] && [[ $CURRENT_MINUTES -le $END_MINUTES ]]; then
+            echo "✅ Current time $CURRENT_TIME IST is within allowed window (00:00-08:55 IST)"
+            echo "allowed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Current time $CURRENT_TIME IST is outside allowed window (00:00-08:55 IST)"
+            echo "❌ Manual trigger is only allowed between 00:00 and 08:55 IST on 1st and 16th"
+            echo "allowed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
         fi
 
   process-csv:
