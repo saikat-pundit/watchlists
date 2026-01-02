@@ -4,8 +4,7 @@ on:
   workflow_dispatch:  # Manual trigger from Actions tab
   schedule:
     # Runs on 1st and 16th of each month at 01:00 AM IST
-    - cron: '0 1 1,16 * *'
-    timezone: 'Asia/Kolkata'
+    - cron: '15 0 1,16 * *'
 
 jobs:
   process-csv:
