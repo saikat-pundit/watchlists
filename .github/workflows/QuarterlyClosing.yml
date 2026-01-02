@@ -18,7 +18,8 @@ jobs:
       run: |
         echo "Processing CSV files..."
         
-        # Get current timestamp in IST (we're already running in IST timezone)
+        # Get current timestamp in IST - IMPORTANT: Set TZ first
+        export TZ="Asia/Kolkata"
         TIMESTAMP_IST=$(date +'%d-%b %H:%M')
         
         # Create header for output file
@@ -75,7 +76,7 @@ jobs:
         done
         
         # Add timestamp row at the end (after BSE Commodities)
-        echo "\"Data as of:\",\"$TIMESTAMP_IST IST\"" >> Data/QuarterlyClosing.csv
+        echo "\"Update Time (IST):\",\"$TIMESTAMP_IST\"" >> Data/QuarterlyClosing.csv
         
         echo "Data extraction completed at $TIMESTAMP_IST IST!"
         echo "Contents of QuarterlyClosing.csv:"
@@ -87,7 +88,8 @@ jobs:
         git config --local user.name "GitHub Action"
         git add Data/QuarterlyClosing.csv
         
-        # Get IST timestamp for commit message
+        # Get IST timestamp for commit message - Set TZ again
+        export TZ="Asia/Kolkata"
         COMMIT_TIMESTAMP=$(date +'%d-%b-%Y %H:%M IST')
         
         git diff --quiet && git diff --staged --quiet || (git commit -m "Update quarterly closing data - $COMMIT_TIMESTAMP [automated]" && git push)
