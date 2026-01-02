@@ -3,9 +3,9 @@ name: Quarterly Closing
 on:
   workflow_dispatch:  # Manual trigger from Actions tab
   schedule:
-    # Runs on 1st and 16th of each month at 01:00 AM IST (19:30 UTC previous day)
-    - cron: '30 19 31 * *'  # Last day of month for 1st next month at 01:00 IST
-    - cron: '30 19 15 * *'  # 15th for 16th at 01:00 IST
+    # Runs on 1st and 16th of each month at 01:00 AM IST
+    - cron: '0 1 1,16 * *'
+    timezone: 'Asia/Kolkata'
 
 jobs:
   process-csv:
@@ -19,8 +19,8 @@ jobs:
       run: |
         echo "Processing CSV files..."
         
-        # Get current timestamp in IST (Indian Standard Time)
-        TIMESTAMP_IST=$(TZ="Asia/Kolkata" date +'%d-%b %H:%M')
+        # Get current timestamp in IST (we're already running in IST timezone)
+        TIMESTAMP_IST=$(date +'%d-%b %H:%M')
         
         # Create header for output file
         echo "Index_Name,Closing_Value" > Data/QuarterlyClosing.csv
@@ -76,9 +76,9 @@ jobs:
         done
         
         # Add timestamp row at the end (after BSE Commodities)
-        echo "\"Timestamp\",\"$TIMESTAMP_IST\"" >> Data/QuarterlyClosing.csv
+        echo "\"Data as of:\",\"$TIMESTAMP_IST IST\"" >> Data/QuarterlyClosing.csv
         
-        echo "Data extraction completed!"
+        echo "Data extraction completed at $TIMESTAMP_IST IST!"
         echo "Contents of QuarterlyClosing.csv:"
         cat Data/QuarterlyClosing.csv
         
@@ -89,6 +89,6 @@ jobs:
         git add Data/QuarterlyClosing.csv
         
         # Get IST timestamp for commit message
-        COMMIT_TIMESTAMP=$(TZ="Asia/Kolkata" date +'%d-%b-%Y %H:%M IST')
+        COMMIT_TIMESTAMP=$(date +'%d-%b-%Y %H:%M IST')
         
         git diff --quiet && git diff --staged --quiet || (git commit -m "Update quarterly closing data - $COMMIT_TIMESTAMP [automated]" && git push)
