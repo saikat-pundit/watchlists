@@ -126,23 +126,63 @@ headers = {
     'Referer': 'https://www.nseindia.com/option-chain'
 }
 
-def get_future_price(symbol="NIFTY"):
-    """Fetch NIFTY futures price with fallback"""
+def get_future_price(symbol="NIFTY", data=None):
+    """Calculate synthetic future price using ATM put-call parity with 50-multiple strikes"""
     try:
-        if "NIFTY" in symbol.upper():
-            url = "https://scanner.tradingview.com/symbol?symbol=NSEIX:NIFTY1!&fields=close&no_404=true"
-            response = requests.get(url, headers=headers, timeout=5)
-            data = response.json()
-            future_price = float(data.get('close', 0))
+        if data is None:
+            print("Warning: No option chain data available for future calculation")
+            return 0
             
-            if future_price <= 0:
-                # Fallback: calculate from spot using put-call parity
-                print("Warning: Future price not available, using synthetic future")
-                return 0
-            return future_price
-        return 0
+        # Get all strikes including 50-multiples
+        all_strikes = []
+        for item in data['records']['data']:
+            strike = item['strikePrice']
+            # Include both 50 and 100 multiples
+            if strike % 50 == 0:
+                all_strikes.append(strike)
+        
+        if not all_strikes:
+            print("Warning: No valid strikes found for future calculation")
+            return 0
+        
+        underlying_value = data['records']['underlyingValue']
+        
+        # Find ATM strike (closest to underlying value, can be 50-multiple)
+        atm_strike = min(all_strikes, key=lambda x: abs(x - underlying_value))
+        
+        # Find the data for ATM strike
+        atm_data = None
+        for item in data['records']['data']:
+            if item['strikePrice'] == atm_strike:
+                atm_data = item
+                break
+        
+        if atm_data is None:
+            print(f"Warning: No data found for ATM strike {atm_strike}")
+            return 0
+        
+        # Get ATM call and put prices
+        ce_data = atm_data.get('CE', {})
+        pe_data = atm_data.get('PE', {})
+        
+        atm_call_price = ce_data.get('lastPrice', 0)
+        atm_put_price = pe_data.get('lastPrice', 0)
+        
+        # Apply minimum 5 paisa for calculation
+        calc_call_price = max(atm_call_price, 0.05)
+        calc_put_price = max(atm_put_price, 0.05)
+        
+        # Calculate synthetic future: F = K + C - P
+        synthetic_future = atm_strike + calc_call_price - calc_put_price
+        
+        print(f"Future Calculation: ATM Strike={atm_strike} (50-multiple), "
+              f"CE={calc_call_price:.2f}, PE={calc_put_price:.2f}, "
+              f"Future={synthetic_future:.2f}")
+        
+        return synthetic_future
+        
     except Exception as e:
-        print(f"Warning: Could not fetch future price: {e}")
+        print(f"Error calculating synthetic future: {e}")
         return 0
 
 def get_next_tuesday():
@@ -339,11 +379,11 @@ def create_option_chain_dataframe(data, expiry_date):
     df = pd.DataFrame(option_data)
     
     # Get futures price
-    future_price = get_future_price()
-    
-    if future_price <= 0:
-        print("Warning: Could not fetch futures price, using spot as fallback")
-        future_price = underlying_value
+    future_price = get_future_price(data=data)
+
+if future_price <= 0:
+    print("Warning: Could not calculate synthetic future, using spot as fallback")
+    future_price = underlying_value
     
     print(f"Future Price: {future_price:.2f}, Spot: {underlying_value}")
     
