@@ -19,7 +19,10 @@ def format_value(value, key, index_name):
         return str(val)
     except: return '-'
 
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'application/json'
+}
 
 index_dict = {}
 
@@ -34,23 +37,21 @@ for name, symbol in TV_SYMBOLS.items():
         }
     except: pass
 
-# NSE data with proper session
+# NSE data - FIXED: Direct request works!
 try:
-    session = requests.Session()
-    session.get("https://www.nseindia.com", headers=headers, timeout=5)
-    session.get("https://www.nseindia.com/api/marketStatus", headers=headers, timeout=5)
-    nse_data = session.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=5).json()
-    
-    for item in nse_data.get('data', []):
-        name = item.get('index')
-        if name not in target_indices or name in TV_SYMBOLS: continue
-        adv, dec = int(item.get('advances', 0)), int(item.get('declines', 0))
-        adv_dec = f"{adv/dec:.2f}" if dec > 0 else ("Max" if adv > 0 else "-")
-        index_dict[name] = {
-            'Index': format_index_name(name), 'LTP': item.get('last'), 'Chng': item.get('variation'),
-            '%': item.get('percentChange'), 'Prev.': item.get('previousClose'), 'Adv:Dec': adv_dec,
-            'Yr Hi': item.get('yearHigh'), 'Yr Lo': item.get('yearLow')
-        }
+    response = requests.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=10)
+    if response.status_code == 200:
+        nse_data = response.json()
+        for item in nse_data.get('data', []):
+            name = item.get('index')
+            if name not in target_indices or name in TV_SYMBOLS: continue
+            adv, dec = int(item.get('advances', 0)), int(item.get('declines', 0))
+            adv_dec = f"{adv/dec:.2f}" if dec > 0 else ("Max" if adv > 0 else "-")
+            index_dict[name] = {
+                'Index': format_index_name(name), 'LTP': item.get('last'), 'Chng': item.get('variation'),
+                '%': item.get('percentChange'), 'Prev.': item.get('previousClose'), 'Adv:Dec': adv_dec,
+                'Yr Hi': item.get('yearHigh'), 'Yr Lo': item.get('yearLow')
+            }
 except: pass
 
 # Prepare CSV
