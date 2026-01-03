@@ -23,14 +23,22 @@ def main():
     print("📊 Fetching global market data...")
     
     try:
-        # Get all symbols
-        symbols = [s for s,_ in MARKETS]
+        # Fetch ALL data first
+        total_count, all_data = Query().select(
+            'name', 'close', 'change_abs', 'change', 'close[1]',
+            'price_52_week_high', 'price_52_week_low', 'ticker'
+        ).get_scanner_data()
         
-        # Fetch data
-        _, df = (Query()
-                .set_symbols({'tickers': symbols})
-                .select('close', 'change_abs', 'change', 'close[1]')
-                .get_scanner_data())
+        print(f"Total instruments available: {total_count}")
+        
+        # Filter for our specific symbols
+        symbols = [s for s,_ in MARKETS]
+        df = all_data[all_data['ticker'].isin(symbols)]
+        
+        if df.empty:
+            print("❌ No matching symbols found")
+            print("Available tickers sample:", all_data['ticker'].head(10).tolist())
+            return
         
         # Process results
         results = []
@@ -45,7 +53,9 @@ def main():
                     'ltp': r.get('close'),
                     'change': r.get('change_abs'),
                     'change_percent': r.get('change'),
-                    'previous_close': r.get('close[1]')
+                    'previous_close': r.get('close[1]'),
+                    'year_high': r.get('price_52_week_high'),
+                    'year_low': r.get('price_52_week_low')
                 })
         
         # Save to CSV
@@ -58,9 +68,14 @@ def main():
         
         result_df.to_csv('Data/GLOBAL.csv', index=False)
         print(f"✅ Saved {len(results)} records to Data/GLOBAL.csv")
+        print("\n📈 Latest data:")
+        for r in results:
+            print(f"  {r['index']}: {r['ltp']} ({r['change_percent']}%)")
         
     except Exception as e:
         print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
