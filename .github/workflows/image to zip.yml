@@ -1,0 +1,115 @@
+name: Download Google Drive Images
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    paths:
+      - 'urls.txt'    # Run when URLs file changes
+  schedule:
+    - cron: '0 0 * * *'  # Optional: Daily at midnight
+
+jobs:
+  download-images:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+        
+    - name: Create URLs file
+      run: |
+        # Create urls.txt with your Google Drive links
+        cat > urls.txt << 'EOF'
+        https://drive.google.com/file/d/1MiSA5udZTIY3F38DdVn0janYGf2W3Fle/view?usp=drivesdk
+        https://drive.google.com/file/d/1MfCvCLPoC9ukYmB_2B2JI3pUma9SFOYZ/view?usp=drivesdk
+        https://drive.google.com/file/d/1lUKjWuTy1T_oTE2fz9VSkM_aptH-R4Zv/view?usp=drivesdk
+        https://drive.google.com/file/d/1UXnuu4tJq83U-mdOQ9BU6-8oDyYbIfkm/view?usp=drivesdk
+        https://drive.google.com/file/d/1_vxs5fw7zavZqDvMnSTNuOt_ghJCWpls/view?usp=drivesdk
+        https://drive.google.com/file/d/1DavESr8wwrYInH8pa2AWT89dvQhNUUd9/view?usp=drivesdk
+        https://drive.google.com/file/d/1qOAzG1vlZWj57VRR5zwNHxwPlP6aPe1_/view?usp=drivesdk
+        https://drive.google.com/file/d/1cSCgbDmweSzZIeLAABP5cUYw01_GDXoM/view?usp=drivesdk
+        https://drive.google.com/file/d/1AGmaLasn1cLzaKh7Nj3haH6PXYuOklDJ/view?usp=drivesdk
+        https://drive.google.com/file/d/15Xan5i41Dg0bgUqFWbW0y4tllveOTxLe/view?usp=drivesdk
+        https://drive.google.com/file/d/1aeOwQn_6lnQunEDWzjo86dNQ0hmP0_Iw/view?usp=drivesdk
+        https://drive.google.com/file/d/1BaoTiM2VC1ml4MAyMKfgdu5cPU7W6MNN/view?usp=drivesdk
+        https://drive.google.com/file/d/1LUOkkBVqJfFIksJNwydwD-YkW4EB1ANU/view?usp=drivesdk
+        https://drive.google.com/file/d/1CH5tcGracW31B2BrJi36KrwRVbYOIZl7/view?usp=drivesdk
+        https://drive.google.com/file/d/1mILZQWlwBTiK8DxnZmwwWZ6xe3FRD4qu/view?usp=drivesdk
+        https://drive.google.com/file/d/1I5xjErhK1HnGpVZRGZ_oi5AWEtg-Fbc6/view?usp=drivesdk
+        https://drive.google.com/file/d/1_EKmqv8faoMyCEZXp-w4ej8yakonTI8a/view?usp=drivesdk
+        https://drive.google.com/file/d/1eGrDHIHXNmtFozFL0sFtdgUN_xVVKQuH/view?usp=drivesdk
+        https://drive.google.com/file/d/1ppRohfHo1emzYTdxAINIPsNtS2zUmfq6/view?usp=drivesdk
+        https://drive.google.com/file/d/1MrmuUTX2aaoP0peJ_hFuVeQOzHTp-ZI9/view?usp=drivesdk
+        https://drive.google.com/file/d/18-QWX_WpD8WUxhY-yGN33XTaXMbEz4yZ/view?usp=drivesdk
+        https://drive.google.com/file/d/1_vKrf86Lp8ZcYnnmpfvEyQMKlkFTxzbC/view?usp=drivesdk
+        https://drive.google.com/file/d/1aP6BuuR3HH1U9_MgdeUvlbm87KCI9zIz/view?usp=drivesdk
+        https://drive.google.com/file/d/1LNfCkM-EqwsBdN5bZApoqr8VotaSRPI6/view?usp=drivesdk
+        https://drive.google.com/file/d/1ovbVKXpw5UQcMFzuwUGv_CIGZZfEGabp/view?usp=drivesdk
+        https://drive.google.com/file/d/121ywYjI-WxF2xEzOunulbxY59g6MWZHA/view?usp=drivesdk
+        https://drive.google.com/file/d/1zmNfIJ2R6B3XOG59ntM2kqR-5BuIbjr8/view?usp=drivesdk
+        https://drive.google.com/file/d/1TTEAu3hrb0oYFVh0yQMkAKu0Hk6gksef/view?usp=drivesdk
+        https://drive.google.com/file/d/1FDDf8maIBRNPJRE0P_YNbqLywLMiUHij/view?usp=drivesdk
+        https://drive.google.com/file/d/1wT4GV095ff8l-03CbHLJHzQKEzQ89f4E/view?usp=drivesdk
+        https://drive.google.com/file/d/18_BCY3IHTjAC1LGWpefl_YMVSxlvFH7k/view?usp=drivesdk
+        https://drive.google.com/file/d/1vc4oIihRF4fbkFV36RnQIr1ed7s0gpmH/view?usp=drivesdk
+        https://drive.google.com/file/d/1hscMzlYQUGW1qigBYRHZlBlDga12fJ3-/view?usp=drivesdk
+        https://drive.google.com/file/d/1e8birAHRaMJrOtlsa8Hrh4JNIw_cWaiR/view?usp=drivesdk
+        https://drive.google.com/file/d/1AsndB6iATylKVfnPzBy0_NDF0GgOZ-02/view?usp=drivesdk
+        https://drive.google.com/file/d/16RwLfMLLiedN_oKelIZyjItgA5Mk1-ds/view?usp=drivesdk
+        https://drive.google.com/file/d/16j6ThviltCwSOkejoEtn8_e_e7xcDnNS/view?usp=drivesdk
+        https://drive.google.com/file/d/1nFwhP0Ow0qMXE5uQ5-R5fHE1jKBqgW1e/view?usp=drivesdk
+        https://drive.google.com/file/d/1sBHAxZQ_nma7mTAlzFMPSJPlEM2UaO6X/view?usp=drivesdk
+        https://drive.google.com/file/d/1yhXw8gvb2nCby6kBntMCG_jkm5NT7pi6/view?usp=drivesdk
+        https://drive.google.com/file/d/1jwEkDcHEMTN6bLkA7OQJo_3NuNGnzJuB/view?usp=drivesdk
+        https://drive.google.com/file/d/1TVlCLOaST5b7vylsLr9AkCi5_pCssKYb/view?usp=drivesdk
+        https://drive.google.com/file/d/1wSNpMhuqwlK0n3HCC8cYSULFuWOtH30c/view?usp=drivesdk
+        https://drive.google.com/file/d/1wai85wX7f6A9mlts3RU-8p2-lkspIAOU/view?usp=drivesdk
+        https://drive.google.com/file/d/1Q-yFsScIi_237sI8EkCsfcMEp-jT4nRT/view?usp=drivesdk
+        https://drive.google.com/file/d/1BTmqElycyEfhZZazpwCjfD-XR6ZYNYZ9/view?usp=drivesdk
+        https://drive.google.com/file/d/1VQVf8hMUb5JnK5r8mwDZ2ToIZ_SO3JXy/view?usp=drivesdk
+        https://drive.google.com/file/d/1_7Qzp69eL1iry54BvSz2mX9Bt8emNYRP/view?usp=drivesdk
+        https://drive.google.com/file/d/1zgrY99G3tI_AVTx3ItHGGpEpXwB9pLfs/view?usp=drivesdk
+        https://drive.google.com/file/d/1gqn3DAVTarqKt8phcAdmfie55OtMxVSN/view?usp=drivesdk
+        https://drive.google.com/file/d/12KeXdwHFlfv3G-em6lfK5UF4j5W2XRem/view?usp=drivesdk
+        https://drive.google.com/file/d/1WM1pZRkGHEX7N4qJHGoxH8j2DujTEMbb/view?usp=drivesdk
+        https://drive.google.com/file/d/12RihZNsLNZXhCNC3fAnREghhXoJsSeNz/view?usp=drivesdk
+        https://drive.google.com/file/d/1udWEJVrHqKvKLpSrTes-ZQ1nP7FAtixB/view?usp=drivesdk
+        https://drive.google.com/file/d/1Xl3_bzERgpL5Jt720vapTvloC29gkSzG/view?usp=drivesdk
+        https://drive.google.com/file/d/1_gitRFlBU1sdgS0uAQD6Kx6k_uTezk_u/view?usp=drivesdk
+        https://drive.google.com/file/d/12c4XrX1CXtWNumdQ71ga_jO4u4xR1voY/view?usp=drivesdk
+        https://drive.google.com/file/d/1CFfnKdq8bcEz-MBSzZJyX6IPA0Qgl6Cn/view?usp=drivesdk
+        https://drive.google.com/file/d/1ecYHSw1GfQ4t5mfwidJi1YT7UqjGw69Q/view?usp=drivesdk
+        https://drive.google.com/file/d/1cOH7YNpVdhYNwEpvWHmeyYk7E0lYWWbd/view?usp=drivesdk
+        https://drive.google.com/file/d/1s1OvpznJ_JWskfIfQtdGOLVoHO0MOjeZ/view?usp=drivesdk
+        https://drive.google.com/file/d/1jRvAdhN06Cde70QSs_xu-h4TRGS3fRN8/view?usp=drivesdk
+        https://drive.google.com/file/d/1bycgTUd1K89xwIcJUoRPSKBfxM9Wi_gw/view?usp=drivesdk
+        https://drive.google.com/file/d/1mc0WPsk_nEgewASvrwVOnb-ErX3iJuC8/view?usp=drivesdk
+        EOF
+        
+    - name: Run download script
+      run: |
+        python gdrive_image_downloader.py -i urls.txt -o gdrive_images.zip -w 3
+        
+    - name: Upload zip artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: gdrive-images
+        path: gdrive_images.zip
+        retention-days: 7
+        
+    - name: Get file size
+      run: |
+        if [ -f gdrive_images.zip ]; then
+          size=$(du -h gdrive_images.zip | cut -f1)
+          echo "Zip file size: $size"
+        fi
