@@ -12,12 +12,30 @@ def format_value(value, key, index_name):
     if value in ['-', None, '']: return '-'
     try:
         val = float(value)
-        if key == '%': return f"{val:.2f}%"
-        if key == 'Adv:Dec': return f"{val:.2f}"
-        if index_name in ["INDIA VIX", "USD/INR", "IND 5Y", "IND 10Y", "IND 30Y"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']: return f"{val:.2f}"
-        if key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']: return str(int(val)) if val.is_integer() else str(val)
+        
+        if key == '%': 
+            return f"{val:.2f}%"
+        
+        if key == 'Adv:Dec': 
+            return f"{val:.2f}"
+        
+        # Rounding rules for specific indices
+        if index_name in ["INDIA VIX"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
+            return f"{val:.2f}"
+        
+        if index_name in ["USD/INR"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
+            return f"{val:.2f}"
+        
+        if index_name in ["IND 5Y", "IND 10Y", "IND 30Y"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
+            return f"{val:.2f}"
+        
+        # Round to integer for NIFTY indices
+        if index_name not in ["INDIA VIX", "USD/INR", "IND 5Y", "IND 10Y", "IND 30Y"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
+            return str(int(val)) if val.is_integer() else str(val)
+        
         return str(val)
-    except: return '-'
+    except: 
+        return '-'
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -37,7 +55,7 @@ for name, symbol in TV_SYMBOLS.items():
         }
     except: pass
 
-# NSE data - FIXED: Direct request works!
+# NSE data
 try:
     response = requests.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=10)
     if response.status_code == 200:
