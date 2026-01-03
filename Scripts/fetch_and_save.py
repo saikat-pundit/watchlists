@@ -1,4 +1,4 @@
-import requests, pandas as pd, os, pytz, json
+import requests, pandas as pd, os, pytz
 from datetime import datetime
 
 TV_SYMBOLS = {"USD/INR": "FX_IDC:USDINR", "GIFT-NIFTY": "NSEIX:NIFTY1!", "GOLD": "MCX:GOLD1!", "SILVER": "MCX:SILVER1!", "IND 5Y": "TVC:IN05Y", "IND 10Y": "TVC:IN10Y", "IND 30Y": "TVC:IN30Y"}
@@ -19,18 +19,14 @@ def format_value(value, key, index_name):
         return str(val)
     except: return '-'
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': 'application/json',
-    'Referer': 'https://www.nseindia.com/'
-}
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
 index_dict = {}
 
 # TradingView data
 for name, symbol in TV_SYMBOLS.items():
     try:
-        data = requests.get(f"https://scanner.tradingview.com/symbol?symbol={symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true", timeout=5).json()
+        data = requests.get(f"https://scanner.tradingview.com/symbol?symbol={symbol}&fields=close[1],change_abs,price_52_week_high,price_52_week_low,close,change&no_404=true", headers=headers, timeout=5).json()
         index_dict[name] = {
             'Index': format_index_name(name), 'LTP': data.get('close'), 'Chng': data.get('change_abs'),
             '%': data.get('change'), 'Prev.': data.get('close[1]'), 'Adv:Dec': '-',
@@ -38,12 +34,14 @@ for name, symbol in TV_SYMBOLS.items():
         }
     except: pass
 
-# NSE data with session
-session = requests.Session()
+# NSE data with proper session
 try:
+    session = requests.Session()
     session.get("https://www.nseindia.com", headers=headers, timeout=5)
-    data = session.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=5).json()
-    for item in data.get('data', []):
+    session.get("https://www.nseindia.com/api/marketStatus", headers=headers, timeout=5)
+    nse_data = session.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=5).json()
+    
+    for item in nse_data.get('data', []):
         name = item.get('index')
         if name not in target_indices or name in TV_SYMBOLS: continue
         adv, dec = int(item.get('advances', 0)), int(item.get('declines', 0))
