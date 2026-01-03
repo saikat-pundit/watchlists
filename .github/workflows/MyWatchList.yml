@@ -36,7 +36,7 @@ jobs:
           YANDEX_EMAIL: ${{ secrets.YANDEX_EMAIL }}
           YANDEX_APP_PASSWORD: ${{ secrets.YANDEX_APP_PASSWORD }}
         run: |
-          python Scripts/fetch_and_save.py
+          python Scripts/nseindices.py
           python Scripts/nifty50_top10.py
           python Scripts/etf_fetch.py
           python Scripts/global_data.py
