@@ -9,56 +9,48 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - uses: actions/setup-python@v5
+    - name: Setup Python with cache
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         cache: 'pip'
+        cache-dependency-path: 'requirements.txt'
     
     - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r requirements.txt
+      run: pip install -q -r requirements.txt
     
     - name: Create zip files
-      run: python download_zips.py
+      run: python download_zips.py 2>/dev/null || python download_zips.py
     
     - name: Get IST timestamp
       id: timestamp
       run: |
         IST_TIME=$(TZ="Asia/Kolkata" date '+%d-%b-%Y %I:%M:%S %p IST')
         echo "IST_TIME=${IST_TIME}" >> $GITHUB_OUTPUT
-        echo "IST_DATE=${IST_TIME}" >> $GITHUB_OUTPUT
+        echo "SHORT_DATE=$(TZ="Asia/Kolkata" date '+%d-%b-%Y')" >> $GITHUB_OUTPUT
     
-    - name: Create GitHub Release with static links
+    - name: Delete old 'latest' release
+      uses: dev-drprasad/delete-tag-and-release@v1.0
+      with:
+        delete_release: true
+        tag_name: "latest"
+      continue-on-error: true
+    
+    - name: Create new release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: "latest"
-        name: "Zip Files - ${{ steps.timestamp.outputs.IST_DATE }}"
+        name: "Zip Files - ${{ steps.timestamp.outputs.SHORT_DATE }}"
         body: |
           ## 📦 Static Download Links
-          
-          These links always point to the latest files:
           
           🔗 **[PRIMARY.zip](https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip)**  
           🔗 **[Secondary_Higher_Secondary.zip](https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip)**
           
-          ---
+          **Generated:** ${{ steps.timestamp.outputs.IST_TIME }}  
+          **Run:** ${{ github.run_number }}
           
-          **Generated on:** ${{ steps.timestamp.outputs.IST_TIME }}  
-          **Run ID:** ${{ github.run_number }}  
-          **Commit:** ${{ github.sha }}
-          
-          ---
-          
-          ### 📁 Direct Download URLs (copy-paste):
+          ### Direct URLs:
           ```
           https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip
           https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip
@@ -66,25 +58,8 @@ jobs:
         files: |
           PRIMARY.zip
           Secondary_Higher_Secondary.zip
-        draft: false
-        prerelease: false
-        generate_release_notes: false
     
-    - name: Display Static URLs
+    - name: Show summary
       run: |
-        echo " "
-        echo "=========================================="
-        echo "🔗 PERMANENT STATIC DOWNLOAD LINKS (IST)"
-        echo "=========================================="
-        echo " "
-        echo "📅 Generated: ${{ steps.timestamp.outputs.IST_TIME }}"
-        echo " "
-        echo "📥 PRIMARY.zip (always latest):"
-        echo "https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip"
-        echo " "
-        echo "📥 Secondary_Higher_Secondary.zip (always latest):"
-        echo "https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip"
-        echo " "
-        echo "📁 Releases page:"
-        echo "https://github.com/${{ github.repository }}/releases"
-        echo "=========================================="
+        echo "✅ Done! Files ready at:"
+        echo "https://github.com/${{ github.repository }}/releases/latest"
