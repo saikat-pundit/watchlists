@@ -20,7 +20,7 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip'  # Enable pip caching
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -30,9 +30,40 @@ jobs:
     - name: Create zip files
       run: python download_zips.py
     
-    - uses: actions/upload-artifact@v4
+    - name: Create GitHub Release with static links
+      uses: softprops/action-gh-release@v1
       with:
-        name: zip-files
-        path: |
+        tag_name: "zip-files-${{ github.run_number }}"
+        name: "Zip Files v${{ github.run_number }}"
+        body: |
+          ## Static Download Links
+          
+          These links always point to the latest files:
+          
+          - [PRIMARY.zip](https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip)
+          - [Secondary_Higher_Secondary.zip](https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip)
+          
+          *Generated on: $(date)*
+        files: |
           PRIMARY.zip
           Secondary_Higher_Secondary.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: false
+    
+    - name: Display Static URLs
+      run: |
+        echo " "
+        echo "=========================================="
+        echo "🔗 PERMANENT STATIC DOWNLOAD LINKS"
+        echo "=========================================="
+        echo " "
+        echo "📥 PRIMARY.zip (always latest):"
+        echo "https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip"
+        echo " "
+        echo "📥 Secondary_Higher_Secondary.zip (always latest):"
+        echo "https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip"
+        echo " "
+        echo "📁 All releases:"
+        echo "https://github.com/${{ github.repository }}/releases"
+        echo "=========================================="
