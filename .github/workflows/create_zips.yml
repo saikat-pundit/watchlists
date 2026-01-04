@@ -1,0 +1,30 @@
+name: Create Zip Archives
+
+on: [workflow_dispatch, push]
+
+jobs:
+  create-zips:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install pandas requests
+
+    - name: Run script to create zip files
+      run: python download_zips.py
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: zip-archives
+        path: |
+          PRIMARY.zip
+          Secondary_Higher_Secondary.zip
