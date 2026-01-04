@@ -22,8 +22,8 @@ jobs:
     - name: Get IST timestamp
       id: timestamp
       run: |
-        IST_DATE=$(TZ="Asia/Kolkata" date '+%d-%b-%Y %I:%M %p IST')
-        echo "IST_DATE=${IST_DATE}" >> $GITHUB_OUTPUT
+        IST_TIME=$(TZ="Asia/Kolkata" date '+%d-%b-%Y %I:%M %p IST')
+        echo "IST_TIME=${IST_TIME}" >> $GITHUB_OUTPUT
     
     - name: Delete previous 'latest' release
       uses: dev-drprasad/delete-tag-and-release@v1.0
@@ -37,9 +37,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: "latest"
-        name: "📦 Zip Files - ${{ steps.timestamp.outputs.IST_DATE }}"
+        name: "📦 Zip Files - ${{ steps.timestamp.outputs.IST_TIME }}"
         body: |
-          ## 📥 Download Links
+          ## 🔗 Download Links
           
           **Primary:**  
           https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip
@@ -48,8 +48,7 @@ jobs:
           https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip
           
           ---
-          *Generated: ${{ steps.timestamp.outputs.IST_DATE }}*  
-          *Run: ${{ github.run_number }}*
+          *Updated: ${{ steps.timestamp.outputs.IST_TIME }}*
         files: |
           PRIMARY.zip
           Secondary_Higher_Secondary.zip
