@@ -1,13 +1,7 @@
 import pandas as pd, requests, re, zipfile, os, json
 from io import StringIO
-
-# Get CSV
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBuDewVgTDoc_zaWYQyaWKpBt0RwtFPhnBrpqr1v6Y5wfAmPpEYvTsaWd64bsHhH68iYNtLMSRpOQ0/pub?gid=1630572077&single=true&output=csv"
 df = pd.read_csv(StringIO(requests.get(url).text))
-
-# Get links - CORRECT INDICES based on verification
-# PRIMARY: Row 70 (index 69), Column 9
-# SECONDARY: Row 71 (index 70), Column 9
 primary_links = str(df.iloc[69, 9]) if pd.notna(df.iloc[69, 9]) else ""
 secondary_links = str(df.iloc[70, 9]) if pd.notna(df.iloc[70, 9]) else ""
 
