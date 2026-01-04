@@ -1,56 +1,91 @@
-import pandas as pd, requests, re, zipfile
+import pandas as pd, requests, re, zipfile, os, json
 from io import StringIO
 
 # Get CSV
-df = pd.read_csv(StringIO(requests.get("https://docs.google.com/spreadsheets/d/e/2PACX-1vTBuDewVgTDoc_zaWYQyaWKpBt0RwtFPhnBrpqr1v6Y5wfAmPpEYvTsaWd64bsHhH68iYNtLMSRpOQ0/pub?gid=1630572077&single=true&output=csv").text))
+url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBuDewVgTDoc_zaWYQyaWKpBt0RwtFPhnBrpqr1v6Y5wfAmPpEYvTsaWd64bsHhH68iYNtLMSRpOQ0/pub?gid=1630572077&single=true&output=csv"
+df = pd.read_csv(StringIO(requests.get(url).text))
 
-# Extract exactly J71 (70,9) and J72 (71,9)
-primary = str(df.iloc[70, 9]) if pd.notna(df.iloc[70, 9]) else ""
-secondary = str(df.iloc[71, 9]) if pd.notna(df.iloc[71, 9]) else ""
+# Get links - CORRECT INDICES based on verification
+# PRIMARY: Row 70 (index 69), Column 9
+# SECONDARY: Row 71 (index 70), Column 9
+primary_links = str(df.iloc[69, 9]) if pd.notna(df.iloc[69, 9]) else ""
+secondary_links = str(df.iloc[70, 9]) if pd.notna(df.iloc[70, 9]) else ""
 
-# Create zip function
-def make_zip(links, zip_name):
-    if not links: return False
+print(f"📦 PRIMARY links: {len(primary_links.split(';')) if primary_links else 0}")
+print(f"📦 SECONDARY links: {len(secondary_links.split(';')) if secondary_links else 0}")
+
+def get_filename(file_id):
+    """Extract original filename from Google Drive"""
+    try:
+        meta_url = f"https://drive.google.com/file/d/{file_id}/view"
+        resp = requests.get(meta_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        
+        # Try JSON-LD
+        json_ld = re.search(r'<script type="application/ld\+json">(.*?)</script>', resp.text, re.DOTALL)
+        if json_ld:
+            data = json.loads(json_ld.group(1))
+            return data.get('name', f"file_{file_id}.jpg")
+        
+        # Try HTML title
+        title = re.search(r'<title>(.*?) - Google Drive</title>', resp.text)
+        if title:
+            return title.group(1).strip()
+            
+    except:
+        pass
+    return f"file_{file_id}.jpg"
+
+def create_zip(links_str, zip_name):
+    """Create zip archive from Google Drive links"""
+    if not links_str or links_str.lower() == 'nan':
+        return False
     
-    with zipfile.ZipFile(f"{zip_name}.zip", 'w') as z:
-        for link in links.split(';'):
-            link = link.strip()
-            if not link: continue
+    success = 0
+    links = [l.strip() for l in links_str.split(';') if l.strip()]
+    
+    with zipfile.ZipFile(f"{zip_name}.zip", 'w') as zipf:
+        for link in links:
+            match = re.search(r'/d/([a-zA-Z0-9_-]+)', link)
+            if not match:
+                continue
+                
+            file_id = match.group(1)
+            filename = get_filename(file_id)
             
-            # Extract file ID
-            fid_match = re.search(r'/d/([a-zA-Z0-9_-]+)', link)
-            if not fid_match: continue
-            fid = fid_match.group(1)
-            
-            # Get original filename
-            try:
-                resp = requests.get(f"https://drive.google.com/file/d/{fid}/view")
-                fname = re.search(r'"title":"([^"]+)"', resp.text).group(1)
-            except:
-                fname = f"file_{fid}.jpg"
+            # Clean filename
+            filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+            if not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                filename += '.jpg'
             
             # Download and add to zip
             try:
-                dl = f"https://drive.google.com/uc?export=download&id={fid}"
-                r = requests.get(dl)
+                dl_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+                session = requests.Session()
+                response = session.get(dl_url, stream=True, timeout=30)
                 
                 # Handle large files
-                if "confirm=" in r.url:
-                    token = re.search(r'confirm=([0-9A-Za-z_]+)', r.url).group(1)
-                    r = requests.get(f"{dl}&confirm={token}")
+                if "confirm=" in response.url:
+                    token = re.search(r'confirm=([0-9A-Za-z_]+)', response.url).group(1)
+                    response = session.get(f"{dl_url}&confirm={token}", stream=True, timeout=30)
                 
-                z.writestr(fname, r.content)
-                print(f"✓ {fname}")
-            except:
-                print(f"✗ {fname}")
+                zipf.writestr(filename, response.content)
+                success += 1
+                print(f"✓ {filename[:50]}..." if len(filename) > 50 else f"✓ {filename}")
+                
+            except Exception as e:
+                print(f"✗ {filename[:30]}...")
+                continue
     
-    return True
+    if success > 0:
+        print(f"✅ {zip_name}.zip created ({success}/{len(links)} files)")
+        return True
+    return False
 
-# Create zips with exact cell references
-if primary: 
-    make_zip(primary, "PRIMARY")
-    print("PRIMARY.zip created from J71")
+# Create zip files
+if primary_links:
+    print("\n🟦 Creating PRIMARY.zip...")
+    create_zip(primary_links, "PRIMARY")
 
-if secondary: 
-    make_zip(secondary, "Secondary_Higher_Secondary")
-    print("Secondary_Higher_Secondary.zip created from J72")
+if secondary_links:
+    print("\n🟨 Creating Secondary_Higher_Secondary.zip...")
+    create_zip(secondary_links, "Secondary_Higher_Secondary")
