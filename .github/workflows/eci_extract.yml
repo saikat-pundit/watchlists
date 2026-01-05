@@ -1,14 +1,15 @@
 name: ECI Data Extraction
 
 on:
-  # Run every day at 8 AM UTC
   schedule:
     - cron: '0 8 * * *'
-  
-  # Allow manual trigger from GitHub UI
   workflow_dispatch:
-  
-  # Run on push to main branch
+    inputs:
+      use_sample_data:
+        description: 'Use sample data if API fails'
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - main
@@ -19,10 +20,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        # Fetch full history for proper commit comparison
-        fetch-depth: 0
+      uses: actions/checkout@v4
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -36,33 +34,45 @@ jobs:
     
     - name: Run ECI data extraction
       id: extract
+      env:
+        USE_SAMPLE_DATA: ${{ github.event_name == 'workflow_dispatch' && inputs.use_sample_data || 'false' }}
       run: |
         echo "🔄 Running ECI data extraction..."
+        echo "USE_SAMPLE_DATA=$USE_SAMPLE_DATA"
         python eci_to_csv.py
         
-        # Count CSV files
-        CSV_COUNT=$(find eci_data -name "*.csv" -type f | wc -l)
-        echo "CSV_FILES=$CSV_COUNT" >> $GITHUB_OUTPUT
-        
-        # Get latest CSV file
-        LATEST_CSV=$(ls -t eci_data/*.csv | head -1 2>/dev/null || echo "")
-        if [ -n "$LATEST_CSV" ]; then
-          echo "LATEST_CSV=$LATEST_CSV" >> $GITHUB_OUTPUT
+        # Check if CSV files were created
+        if [ -d "eci_data" ]; then
+          # Count CSV files
+          CSV_COUNT=$(find eci_data -name "*.csv" -type f | wc -l)
+          echo "CSV_FILES=$CSV_COUNT" >> $GITHUB_OUTPUT
           
-          # Count records in latest CSV
-          RECORD_COUNT=$(tail -n +2 "$LATEST_CSV" | wc -l)
-          echo "RECORD_COUNT=$RECORD_COUNT" >> $GITHUB_OUTPUT
+          # Get latest CSV file
+          LATEST_CSV=$(ls -t eci_data/*.csv 2>/dev/null | head -1 || echo "")
+          if [ -n "$LATEST_CSV" ]; then
+            echo "LATEST_CSV=$LATEST_CSV" >> $GITHUB_OUTPUT
+            
+            # Count records in latest CSV
+            if [ -f "$LATEST_CSV" ]; then
+              RECORD_COUNT=$(tail -n +2 "$LATEST_CSV" 2>/dev/null | wc -l || echo "0")
+              echo "RECORD_COUNT=$RECORD_COUNT" >> $GITHUB_OUTPUT
+            fi
+          fi
+        else
+          echo "CSV_FILES=0" >> $GITHUB_OUTPUT
+          echo "LATEST_CSV=" >> $GITHUB_OUTPUT
+          echo "RECORD_COUNT=0" >> $GITHUB_OUTPUT
         fi
     
     - name: Check for new data
       id: check-data
       run: |
         # Check if any CSV files were created
-        if [ -n "${{ steps.extract.outputs.LATEST_CSV }}" ]; then
-          echo "✅ New data extracted"
+        if [ "${{ steps.extract.outputs.CSV_FILES }}" -gt "0" ]; then
+          echo "✅ Data extracted successfully"
           echo "HAS_NEW_DATA=true" >> $GITHUB_OUTPUT
         else
-          echo "❌ No new data extracted"
+          echo "❌ No data extracted"
           echo "HAS_NEW_DATA=false" >> $GITHUB_OUTPUT
         fi
     
@@ -94,7 +104,8 @@ jobs:
         fi
     
     - name: Upload data as artifact
-      uses: actions/upload-artifact@v4  # CHANGED FROM v3 to v4
+      if: steps.check-data.outputs.HAS_NEW_DATA == 'true'
+      uses: actions/upload-artifact@v4
       with:
         name: eci-data
         path: eci_data/
@@ -111,27 +122,24 @@ jobs:
           echo "✅ **Status:** Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Records Extracted:** ${{ steps.extract.outputs.RECORD_COUNT }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Files Generated:**" >> $GITHUB_STEP_SUMMARY
-          echo "- CSV files: ${{ steps.extract.outputs.CSV_FILES }}" >> $GITHUB_STEP_SUMMARY
+          echo "**CSV Files Generated:** ${{ steps.extract.outputs.CSV_FILES }}" >> $GITHUB_STEP_SUMMARY
           
-          # List files if any
-          if [ -d "eci_data" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Latest Files:**" >> $GITHUB_STEP_SUMMARY
-            for file in $(ls -t eci_data/*.csv eci_data/*.json 2>/dev/null | head -5); do
-              echo "- \`$(basename "$file")\`" >> $GITHUB_STEP_SUMMARY
-            done
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**CSV Headers Preview:**" >> $GITHUB_STEP_SUMMARY
           LATEST_CSV="${{ steps.extract.outputs.LATEST_CSV }}"
           if [ -n "$LATEST_CSV" ] && [ -f "$LATEST_CSV" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**CSV Preview (first row):**" >> $GITHUB_STEP_SUMMARY
             echo '```csv' >> $GITHUB_STEP_SUMMARY
-            head -2 "$LATEST_CSV" | sed 's/,/, /g' >> $GITHUB_STEP_SUMMARY
+            head -2 "$LATEST_CSV" 2>/dev/null || echo "Could not read CSV file" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
         else
           echo "❌ **Status:** Failed - No data extracted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Possible reasons:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. ECI API is blocking GitHub Actions IP" >> $GITHUB_STEP_SUMMARY
+          echo "2. API is down or rate limiting" >> $GITHUB_STEP_SUMMARY
+          echo "3. Authentication token expired" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Solution:**" >> $GITHUB_STEP_SUMMARY
+          echo "Try running manually with 'Use sample data' option enabled" >> $GITHUB_STEP_SUMMARY
         fi
