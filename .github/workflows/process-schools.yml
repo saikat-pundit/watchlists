@@ -21,7 +21,7 @@ jobs:
       run: pip install -q pandas requests
     
     - name: Run school document processor
-      run: python process_school_docs.py
+      run: python Scripts/process_school_docs.py
     
     - name: Get IST timestamp
       id: get-time
