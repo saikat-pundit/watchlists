@@ -22,7 +22,7 @@ jobs:
     - name: Run process
       run: |
         pip install -q pandas requests
-        python -W ignore download_zips.py
+        python -W ignore Scripts/download_zips.py
     
     - name: Get IST timestamp
       id: get-time
