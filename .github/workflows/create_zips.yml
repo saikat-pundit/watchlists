@@ -41,7 +41,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: "zip_files_latest"  # Consistent tag name
-        name: "Zip Files"
+        name: "Student Week Files"
         body: |
           Direct download links:
           - https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip
