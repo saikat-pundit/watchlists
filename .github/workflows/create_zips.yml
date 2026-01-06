@@ -3,8 +3,7 @@ name: Create Zip Archives
 on:
   workflow_dispatch:  # Manual trigger
   schedule:
-    # Runs every 3 hours
-    - cron: '0 */3 * * *'
+    - cron: '0 */3 * * *'  # Runs every 3 hours
 
 jobs:
   create-zips:
@@ -34,20 +33,23 @@ jobs:
       uses: dev-drprasad/delete-tag-and-release@v1.0
       with:
         delete_release: true
-        tag_name: "latest"
+        tag_name: "zip_files_latest"  # Changed to specific tag name
         github_token: ${{ github.token }}
       continue-on-error: true
     
     - name: Create new release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: "latest"
+        tag_name: "zip_files_latest"  # Consistent tag name
         name: "Zip Files"
         body: |
-          https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip
-          https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip
+          Direct download links:
+          - https://github.com/${{ github.repository }}/releases/latest/download/PRIMARY.zip
+          - https://github.com/${{ github.repository }}/releases/latest/download/Secondary_Higher_Secondary.zip
           
-          ${{ steps.get-time.outputs.IST_TIME }}
+          Generated: ${{ steps.get-time.outputs.IST_TIME }}
+          
+          Each zip contains PDFs with their original Google Drive filenames.
         files: |
           PRIMARY.zip
           Secondary_Higher_Secondary.zip
