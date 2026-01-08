@@ -117,23 +117,40 @@ jobs:
           echo "BSE Commodities"
         } | while read -r index_name; do
           
-          # Try to find in BSE.csv first
+          # Try to find in BSE.csv first with exact match
           if [ -f "Data/BSE.csv" ]; then
-            # Extract second column where first column matches (case-insensitive)
+            # Extract second column where first column matches exactly
             result=$(awk -F',' -v idx="$index_name" '
-            BEGIN {IGNORECASE=0; found=0} 
-            $1 ~ idx {print $2; found=1; exit} 
+            BEGIN {found=0} 
+            $1 == idx {print $2; found=1; exit} 
             END {if (!found) print "N/A"}' "Data/BSE.csv")
           else
             result="N/A"
           fi
           
-          # If not found in BSE.csv, try nse_all_indices.csv
+          # If not found in BSE.csv with exact match, try nse_all_indices.csv with exact match
           if [ "$result" = "N/A" ] || [ -z "$result" ]; then
             if [ -f "Data/nse_all_indices.csv" ]; then
               result=$(awk -F',' -v idx="$index_name" '
-              BEGIN {IGNORECASE=0; found=0} 
-              $1 ~ idx {print $2; found=1; exit} 
+              BEGIN {found=0} 
+              $1 == idx {print $2; found=1; exit} 
+              END {if (!found) print "N/A"}' "Data/nse_all_indices.csv")
+            fi
+          fi
+          
+          # If still not found, try case-insensitive exact word match (excluding surrounding spaces)
+          if [ "$result" = "N/A" ] || [ -z "$result" ]; then
+            if [ -f "Data/BSE.csv" ]; then
+              result=$(awk -F',' -v idx="$index_name" '
+              BEGIN {IGNORECASE=1; found=0} 
+              $1 == idx {print $2; found=1; exit} 
+              END {if (!found) print "N/A"}' "Data/BSE.csv")
+            fi
+            
+            if [ "$result" = "N/A" ] && [ -f "Data/nse_all_indices.csv" ]; then
+              result=$(awk -F',' -v idx="$index_name" '
+              BEGIN {IGNORECASE=1; found=0} 
+              $1 == idx {print $2; found=1; exit} 
               END {if (!found) print "N/A"}' "Data/nse_all_indices.csv")
             fi
           fi
@@ -143,6 +160,9 @@ jobs:
           
           # Append to output file
           echo "\"$index_name\",\"$cleaned_result\"" >> Data/QuarterlyClosing.csv
+          
+          # Debug output
+          echo "Looking for: '$index_name' -> Found: '$cleaned_result'"
           
         done
         
