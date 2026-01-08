@@ -1,4 +1,4 @@
-name: Quarterly Closing
+name: Fortnight Closing
 
 on:
   workflow_dispatch:  # Manual trigger from Actions tab
