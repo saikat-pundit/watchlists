@@ -121,7 +121,7 @@ jobs:
           if [ -f "Data/BSE.csv" ]; then
             # Extract second column where first column matches (case-insensitive)
             result=$(awk -F',' -v idx="$index_name" '
-            BEGIN {IGNORECASE=1; found=0} 
+            BEGIN {IGNORECASE=0; found=0} 
             $1 ~ idx {print $2; found=1; exit} 
             END {if (!found) print "N/A"}' "Data/BSE.csv")
           else
@@ -132,7 +132,7 @@ jobs:
           if [ "$result" = "N/A" ] || [ -z "$result" ]; then
             if [ -f "Data/nse_all_indices.csv" ]; then
               result=$(awk -F',' -v idx="$index_name" '
-              BEGIN {IGNORECASE=1; found=0} 
+              BEGIN {IGNORECASE=0; found=0} 
               $1 ~ idx {print $2; found=1; exit} 
               END {if (!found) print "N/A"}' "Data/nse_all_indices.csv")
             fi
