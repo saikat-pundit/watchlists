@@ -9,7 +9,7 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 14 Sep,12:00,India,WPI Inflation YoY AUG,★★,9.92%,9.89%,9.78%
 14 Sep,16:00,India,Inflation Rate YoY AUG,★★,4.82%,4.8%,4.44%
 15 Sep,07:30,China,Industrial Production YoY AUG,★★,5.2%,4.8%,4.5%
-16 Sep,18:00,USA,Retail Sales YoY AUG,★★,,,5%
+16 Sep,18:00,USA,Retail Sales YoY AUG,★★,6%,,5.03%
 16 Sep,23:30,USA,Fed Interest Rate Decision,★★★,,4%,3.75%
 17 Sep,18:00,USA,Housing Starts AUG,★★,,1.31M,1.239M
 17 Sep,18:00,USA,Initial Jobless Claims SEP/12,★★,,205K,206K
@@ -20,4 +20,4 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 28 Sep,16:00,India,Industrial Production YoY AUG,★★,,,6.7%
 30 Sep,07:00,China,NBS Manufacturing PMI SEP,★,,,49.8
 01 Oct,18:00,USA,Initial Jobless Claims SEP/26,★★,,,
-,,,,,,Update Time:,16-Sep 18:40
+,,,,,,Update Time:,16-Sep 18:50
