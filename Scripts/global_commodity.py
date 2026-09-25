@@ -17,6 +17,7 @@ commodity_symbols = [
     {"name": "US10Y", "symbol": "TVC:US10Y"},
     {"name": "US30Y", "symbol": "TVC:US30Y"},
     {"name": "BRENT", "symbol": "FX:UKOIL"},
+    {"name": "WTI", "symbol": "FX:USOIL"},
     {"name": "GOLDINR", "symbol": "MCX:GOLD1!"},
     {"name": "SILVERINR", "symbol": "MCX:SILVER1!"},
     {"name": "GOLD ETF", "symbol": "NSE:GOLDBEES"},
