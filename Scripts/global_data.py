@@ -25,7 +25,7 @@ def format_value(value, key, name):
     if value is None: return "0"
     try:
         if key == '%': return f"{float(value):.2f}%"
-        if name in ["VIX", "Dollar Index", "US10Y", "USD/INR", "USD/JPY"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
+        if name in ["VIX", "Dollar Index", "US03Y", "US05Y","US10Y", "US30Y","USD/INR", "USD/JPY"] and key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
             return f"{float(value):.2f}"
         if key in ['LTP', 'Chng', 'Prev.', 'Yr Hi', 'Yr Lo']:
             val = float(value)
