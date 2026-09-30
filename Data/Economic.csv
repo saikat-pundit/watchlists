@@ -1,7 +1,4 @@
 Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
-14 Sep,00:00,India,Market Holiday - Ganesh Chaturthi,★,,,
-14 Sep,12:00,India,WPI Inflation YoY AUG,★★,9.92%,9.89%,9.78%
-14 Sep,16:00,India,Inflation Rate YoY AUG,★★,4.82%,4.8%,4.44%
 15 Sep,07:30,China,Industrial Production YoY AUG,★★,5.2%,4.8%,4.5%
 16 Sep,18:00,USA,Retail Sales YoY AUG,★★,6%,,5.03%
 16 Sep,23:30,USA,Fed Interest Rate Decision,★★★,4%,4%,3.75%
@@ -23,4 +20,6 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 13 Oct,19:30,USA,Existing Home Sales SEP,★★,,,3.98M
 14 Oct,12:00,India,WPI Inflation YoY SEP,★★,,,9.92%
 14 Oct,18:00,USA,Inflation Rate YoY SEP,★★,,,3.4%
-,,,,,,Update Time:,30-Sep 04:41
+15 Oct,18:00,USA,Initial Jobless Claims OCT/10,★★,,,
+15 Oct,19:00,USA,Retail Sales YoY SEP,★★,,,6%
+,,,,,,Update Time:,30-Sep 06:00
