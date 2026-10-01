@@ -15,10 +15,15 @@ def fetch_bse_data():
         "Referer": "https://www.bseindia.com/"
     }
     
+    cookies = {
+        "_ga": "GA1.1.932471926.1790820492",
+        "_ga_2VVED3VX1X": "GS2.1.s1790820491$o1$g1$t1790820556$j58$l0$h0"
+    }
+    
     all_data = []
     for url in urls:
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, cookies=cookies, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 
