@@ -5,14 +5,23 @@ import os
 
 def fetch_bse_data():
     urls = [
-        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?cat=1&type=2",
-        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?cat=2&type=2",
-        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?cat=3&type=2"
+        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?type=2&cat=1",
+        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?type=2&cat=2",
+        "https://api.bseindia.com/BseIndiaAPI/api/MktCapBoard_indstream/w?type=2&cat=3"
     ]
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0",
-        "Referer": "https://www.bseindia.com/"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Referer": "https://www.bseindia.com/",
+        "Origin": "https://www.bseindia.com",
+        "Connection": "keep-alive",
+        "Host": "api.bseindia.com",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site"
     }
     
     cookies = {
@@ -20,10 +29,15 @@ def fetch_bse_data():
         "_ga_2VVED3VX1X": "GS2.1.s1790820491$o1$g1$t1790820556$j58$l0$h0"
     }
     
+    session = requests.Session()
+    session.headers.update(headers)
+    session.cookies.update(cookies)
+    
     all_data = []
     for url in urls:
         try:
-            response = requests.get(url, headers=headers, cookies=cookies, timeout=10)
+            response = session.get(url, timeout=15)
+            print(f"URL: {url} -> Status: {response.status_code}")
             if response.status_code == 200:
                 data = response.json()
                 
@@ -52,6 +66,8 @@ def fetch_bse_data():
                             "Week52High": "-",
                             "Week52Low": "-"
                         })
+            else:
+                print(f"Response body: {response.text[:300]}")
                         
         except Exception as e:
             print(f"Error fetching {url}: {e}")
