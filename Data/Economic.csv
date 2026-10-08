@@ -8,7 +8,7 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 02 Oct,18:00,USA,Non Farm Payrolls SEP,★★,29K,90K,133K
 07 Oct,10:00,India,RBI Interest Rate Decision,★★★,5.5%,5.5%,5.25%
 07 Oct,23:30,USA,FOMC Minutes,★★★,,,
-08 Oct,18:00,USA,Initial Jobless Claims OCT/03,★★,,200K,197K
+08 Oct,18:00,USA,Initial Jobless Claims OCT/03,★★,197K,200K,199K
 12 Oct,16:00,India,Inflation Rate YoY SEP,★★,,,4.82%
 13 Oct,19:30,USA,Existing Home Sales SEP,★★,,,3.98M
 14 Oct,12:00,India,WPI Inflation YoY SEP,★★,,,9.92%
@@ -19,4 +19,4 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 19 Oct,07:30,China,GDP Growth Rate YoY Q3,★★,,,4.3%
 19 Oct,07:30,China,Industrial Production YoY SEP,★★,,,5.2%
 20 Oct,18:00,USA,Housing Starts SEP,★★,,,1.275M
-,,,,,,Update Time:,08-Oct 18:40
+,,,,,,Update Time:,08-Oct 18:50
