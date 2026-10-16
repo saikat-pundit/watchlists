@@ -1,5 +1,4 @@
 Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
-30 Sep,07:00,China,NBS Manufacturing PMI SEP,★,50.1,50.1,49.8
 01 Oct,18:00,USA,Initial Jobless Claims SEP/26,★★,197K,200K,198K
 02 Oct,00:00,India,Market Holiday - Mahatma Gandhi Jayanti,★,,,
 02 Oct,18:00,USA,Non Farm Payrolls SEP,★★,29K,90K,133K
@@ -24,4 +23,5 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 29 Oct,18:00,USA,Initial Jobless Claims OCT/24,★★,,,
 29 Oct,18:45,Euro,ECB Interest Rate Decision,★★,,,
 30 Oct,08:30,Japan,BoJ Interest Rate Decision,★★,,,1.25%
-,,,,,,Update Time:,16-Oct 04:32
+31 Oct,07:00,China,NBS Manufacturing PMI OCT,★,,,50.1
+,,,,,,Update Time:,16-Oct 06:00
