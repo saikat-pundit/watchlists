@@ -12,7 +12,7 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 19 Oct,07:30,China,GDP Growth Rate YoY Q3,★★,4.5%,4.4%,4.3%
 19 Oct,07:30,China,Industrial Production YoY SEP,★★,5.5%,5.4%,5.2%
 20 Oct,00:00,India,Market Holiday - Dussehra,★,,,
-20 Oct,18:00,USA,Housing Starts SEP,★★,,1.30M,1.275M
+20 Oct,18:00,USA,Housing Starts SEP,★★,1.221M,1.30M,1.288M
 22 Oct,18:00,USA,Initial Jobless Claims OCT/17,★★,,200K,199K
 27 Oct,19:30,USA,New Home Sales SEP,★★,,,0.684M
 28 Oct,16:00,India,Industrial Production YoY SEP,★★,,,8%
@@ -21,4 +21,4 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 29 Oct,18:45,Euro,ECB Interest Rate Decision,★★,,,
 30 Oct,08:30,Japan,BoJ Interest Rate Decision,★★,,,1.25%
 31 Oct,07:00,China,NBS Manufacturing PMI OCT,★,,,50.1
-,,,,,,Update Time:,20-Oct 18:50
+,,,,,,Update Time:,20-Oct 19:00
