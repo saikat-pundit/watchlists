@@ -41,6 +41,15 @@ target_funds = [
 
 NAVALL_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 
+# Accepted option labels for a "growth-like" scheme, with priority.
+# Lower number = higher priority (more preferred when multiple rows match).
+GROWTH_OPTION_PRIORITY = {
+    "growth": 1,
+    "growth option": 1,
+    "cumulative": 2,
+    "cumulative option": 2,
+}
+
 
 def extract_name(full):
     """Extract display name from full fund name"""
@@ -63,12 +72,10 @@ def load_old_data():
     if csv_path.exists():
         try:
             df_old = pd.read_csv(csv_path)
-            # Exclude the timestamp row
             df_funds = df_old[~df_old['Fund Name'].str.contains('LAST UPDATED', na=False)]
 
             for _, row in df_funds.iterrows():
                 fund_name = row['Fund Name']
-                # Only store if we have valid NAV data (not '-')
                 if str(row['NAV']).strip() not in ['-', 'nan', '']:
                     old_data[fund_name] = {
                         'NAV': str(row['NAV']).strip(),
@@ -118,11 +125,32 @@ def _normalize(text):
     return ' '.join(str(text).lower().split())
 
 
+def _scheme_name_candidates(full_name):
+    """Yield possible Scheme Name portions of a full target fund name."""
+    candidates = []
+    for sep in [
+        ' - Direct Plan', '-Direct Plan', ' Direct Plan',
+        '- Direct Plan', '-Direct', '- Direct', ' Direct',
+    ]:
+        if sep in full_name:
+            part = full_name.split(sep)[0].strip()
+            if part:
+                candidates.append(part)
+    candidates.append(full_name.strip())
+    # Deduplicate while preserving order
+    seen = set()
+    out = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
 def _build_navall_lookup(target_date_str):
     """
-    Download NAVAll.txt and build a lookup of {fund_name: nav} for Direct Plan Growth
-    schemes matching a given date.
-    Returns: dict keyed by normalized 'Scheme Name' -> {NAV, Update Time, raw_name}
+    Download NAVAll.txt and build lookup of Direct-Plan growth-like schemes.
+    Returns dict keyed by normalized Scheme Name -> {NAV, Update Time, priority, date}
     """
     try:
         resp = requests.get(NAVALL_URL, headers={'User-Agent': 'Mozilla/5.0'}, timeout=60)
@@ -132,10 +160,8 @@ def _build_navall_lookup(target_date_str):
         print(f"Error fetching NAVAll.txt: {e}")
         return {}
 
-    # Convert expected date format dd-Mon-YYYY (e.g. 26-Oct-2026) for comparison
     try:
-        expected_date_obj = datetime.strptime(target_date_str, '%Y-%m-%d')
-        expected_date_display = expected_date_obj.strftime('%d-%b-%Y')
+        expected_date_display = datetime.strptime(target_date_str, '%Y-%m-%d').strftime('%d-%b-%Y')
     except Exception:
         expected_date_display = target_date_str
 
@@ -147,66 +173,68 @@ def _build_navall_lookup(target_date_str):
         parts = line.split(';')
         if len(parts) < 8:
             continue
-
-        # Skip header
         if parts[0].strip().lower() == 'scheme code':
             continue
 
-        scheme_code = parts[0].strip()
+        isin_growth = parts[1].strip()
         scheme_name = parts[3].strip()
-        plan = parts[4].strip()
-        option = parts[5].strip()
+        plan = _normalize(parts[4])
+        option = _normalize(parts[5])
         nav_amt = parts[6].strip()
         nav_date = parts[7].strip()
 
-        # Only Direct Plan Growth
-        if _normalize(plan) != 'direct plan':
-            continue
-        if _normalize(option) not in ('growth', 'growth option'):
+        if plan != 'direct plan':
             continue
 
-        # Optional: prefer the exact target date if available
-        # (still store others as fallback candidates in case date differs slightly)
-        record = {
+        option_priority = GROWTH_OPTION_PRIORITY.get(option)
+        if option_priority is None:
+            continue
+
+        key = _normalize(scheme_name)
+        rec = {
             'NAV': nav_amt,
             'Update Time': nav_date,
             'raw_name': scheme_name,
-            'date': nav_date
+            'date': nav_date,
+            'priority': option_priority,
+            'has_isin_growth': isin_growth not in ('-', ''),
         }
 
-        key = _normalize(scheme_name)
-        # Prefer exact date match; otherwise keep first available
-        if key not in lookup or nav_date == expected_date_display:
-            lookup[key] = record
+        # Choose the best row for this scheme name:
+        # 1) exact target-date match preferred
+        # 2) lower option priority (growth > cumulative)
+        # 3) non-empty ISIN Growth preferred
+        existing = lookup.get(key)
+        if existing is None:
+            lookup[key] = rec
+            continue
+
+        def _score(r):
+            return (
+                0 if r['date'] == expected_date_display else 1,
+                r['priority'],
+                0 if r['has_isin_growth'] else 1,
+            )
+
+        if _score(rec) < _score(existing):
+            lookup[key] = rec
 
     return lookup
 
 
 def _resolve_targets_from_lookup(lookup):
-    """
-    Match each target fund against the NAVAll lookup.
-    Strategy: exact normalized match first, then startswith on the
-    'Scheme Name' portion extracted from the target full name.
-    Returns dict {display_name: {NAV, Update Time}}
-    """
+    """Match each target fund against the NAVAll lookup."""
     matched = {}
     if not lookup:
         return matched
 
     for full_name in target_funds:
         display = extract_name(full_name)
-
-        # Try to find Scheme Name candidates by stripping plan/option suffixes
-        scheme_candidates = []
-        for sep in [' - Direct Plan', '-Direct Plan', ' Direct Plan', '- Direct', '-Direct']:
-            if sep in full_name:
-                scheme_candidates.append(full_name.split(sep)[0].strip())
-        # Also try entire name
-        scheme_candidates.append(full_name)
+        candidates = _scheme_name_candidates(full_name)
 
         found = None
-        # 1) exact match on any candidate
-        for cand in scheme_candidates:
+        # 1) exact normalized match
+        for cand in candidates:
             key = _normalize(cand)
             if key in lookup:
                 found = lookup[key]
@@ -214,10 +242,10 @@ def _resolve_targets_from_lookup(lookup):
 
         # 2) startswith match
         if not found:
-            for cand in scheme_candidates:
+            for cand in candidates:
                 norm_cand = _normalize(cand)
                 for key, rec in lookup.items():
-                    if key == norm_cand or key.startswith(norm_cand):
+                    if key.startswith(norm_cand):
                         found = rec
                         break
                 if found:
@@ -243,20 +271,17 @@ def main():
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist)
 
-    # Check if today is holiday or weekend
     if today.weekday() in [0, 7] or today.strftime('%Y-%m-%d') in HOLIDAYS:
         print(f"{today.strftime('%Y-%m-%d')} is holiday/weekend. Exiting.")
         exit()
 
-    # Load old data before fetching new data
     old_data = load_old_data()
 
-    # Calculate target date for NAV fetch
     if today.weekday() == 0:  # Monday
         target_date = today - timedelta(days=3)
-    elif today.weekday() == 6:  # Sunday (shouldn't happen due to check above)
+    elif today.weekday() == 6:
         target_date = today - timedelta(days=2)
-    else:  # Tuesday to Friday
+    else:
         target_date = today - timedelta(days=1)
 
     target_date_str = target_date.strftime('%Y-%m-%d')
@@ -264,11 +289,9 @@ def main():
 
     display_names = [extract_name(fund) for fund in target_funds]
 
-    # --- Primary: AMFI API ---
     new_nav_data = fetch_from_api(target_date_str)
     print(f"New data fetched from API for {len(new_nav_data)} funds")
 
-    # --- Fallback: NAVAll.txt for funds still missing ---
     missing_after_api = [name for name in display_names if name not in new_nav_data]
     if missing_after_api:
         print(f"{len(missing_after_api)} fund(s) missing from API. Trying NAVAll.txt fallback...")
@@ -277,7 +300,6 @@ def main():
             if name in navall_data:
                 new_nav_data[name] = navall_data[name]
 
-    # --- Prepare records ---
     records = []
     funds_with_new_data = 0
     funds_with_old_data = 0
@@ -306,7 +328,6 @@ def main():
             })
             funds_missing += 1
 
-    # Add timestamp row
     timestamp = today.strftime('%d-%b %H:%M')
     records.append({
         'Fund Name': '',
@@ -314,10 +335,8 @@ def main():
         'Update Time': timestamp
     })
 
-    # Ensure Data directory exists
     os.makedirs('Data', exist_ok=True)
 
-    # Save to CSV
     df = pd.DataFrame(records)
     df.to_csv('Data/Daily_NAV.csv', index=False)
 
