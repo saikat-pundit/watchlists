@@ -11,7 +11,7 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 20 Oct,00:00,India,Market Holiday - Dussehra,★,,,
 20 Oct,18:00,USA,Housing Starts SEP,★★,1.221M,1.30M,1.288M
 22 Oct,18:00,USA,Initial Jobless Claims OCT/17,★★,194K,200K,200K
-27 Oct,19:30,USA,New Home Sales SEP,★★,,,0.684M
+27 Oct,19:30,USA,New Home Sales SEP,★★,0.676M,0.65M,0.68M
 28 Oct,16:00,India,Industrial Production YoY SEP,★★,,,8%
 28 Oct,23:30,USA,Fed Interest Rate Decision,★★★,,4.0%,4%
 29 Oct,18:00,USA,Initial Jobless Claims OCT/24,★★,,,
@@ -20,4 +20,4 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 31 Oct,07:00,China,NBS Manufacturing PMI OCT,★,,,50.1
 05 Nov,19:00,USA,Initial Jobless Claims OCT/31,★★,,,
 06 Nov,19:00,USA,Non Farm Payrolls OCT,★★,,,29K
-,,,,,,Update Time:,27-Oct 19:50
+,,,,,,Update Time:,27-Oct 19:54
