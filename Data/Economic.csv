@@ -11,12 +11,17 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 20 Oct,18:00,USA,Housing Starts SEP,★★,1.221M,1.30M,1.288M
 22 Oct,18:00,USA,Initial Jobless Claims OCT/17,★★,194K,200K,200K
 27 Oct,19:30,USA,New Home Sales SEP,★★,0.676M,0.65M,0.68M
-28 Oct,16:00,India,Industrial Production YoY SEP,★★,,,8%
+28 Oct,16:00,India,Industrial Production YoY SEP,★★,6.7%,7.2%,7.8%
 28 Oct,23:30,USA,Fed Interest Rate Decision,★★★,,4.0%,4%
-29 Oct,18:00,USA,Initial Jobless Claims OCT/24,★★,,,
-29 Oct,18:45,Euro,ECB Interest Rate Decision,★★,,,
-30 Oct,08:30,Japan,BoJ Interest Rate Decision,★★,,,1.25%
-31 Oct,07:00,China,NBS Manufacturing PMI OCT,★,,,50.1
+29 Oct,18:00,USA,Initial Jobless Claims OCT/24,★★,,199K,194K
+29 Oct,18:45,Euro,ECB Interest Rate Decision,★★,,2.65%,2.65%
+30 Oct,08:30,Japan,BoJ Interest Rate Decision,★★,,1.25%,1.25%
+31 Oct,07:00,China,NBS Manufacturing PMI OCT,★,,50.1,50.1
 05 Nov,19:00,USA,Initial Jobless Claims OCT/31,★★,,,
 06 Nov,19:00,USA,Non Farm Payrolls OCT,★★,,,29K
-,,,,,,Update Time:,28-Oct 17:51
+10 Nov,00:00,India,Market Holiday - Diwali-Balipratipada,★,,,
+10 Nov,19:00,USA,Inflation Rate YoY OCT,★★,,,3.7%
+12 Nov,16:00,India,Inflation Rate YoY OCT,★★,,,5.54%
+12 Nov,19:00,USA,Initial Jobless Claims NOV/07,★★,,,
+12 Nov,20:30,USA,Existing Home Sales OCT,★★,,,3.99M
+,,,,,,Update Time:,28-Oct 18:00
