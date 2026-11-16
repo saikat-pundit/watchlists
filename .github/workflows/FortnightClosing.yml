@@ -57,7 +57,7 @@ jobs:
           CURRENT_MINUTES=$((CURRENT_HOUR_INT * 60 + CURRENT_MINUTE_INT))
           
           # Calculate 08:55 in minutes
-          END_HOUR=8
+          END_HOUR=11
           END_MINUTE=55
           END_MINUTES=$((END_HOUR * 60 + END_MINUTE))
           
