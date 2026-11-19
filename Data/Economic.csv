@@ -12,7 +12,7 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 17 Nov,19:45,USA,Industrial Production YoY OCT,★,2.1%,,2.2%
 18 Nov,19:00,USA,Housing Starts OCT,★★,1.309M,1.25M,1.191M
 19 Nov,00:30,USA,FOMC Minutes,★★★,,,
-19 Nov,19:00,USA,Initial Jobless Claims NOV/14,★★,,197K,200K
+19 Nov,19:00,USA,Initial Jobless Claims NOV/14,★★,203K,197K,202K
 24 Nov,00:00,India,Market Holiday - Prakash Gurpurb Sri Guru Nanak Dev,★,,,
 25 Nov,19:00,USA,Initial Jobless Claims NOV/21,★★,,,
 25 Nov,20:30,USA,New Home Sales OCT,★★,,,0.676M
@@ -22,4 +22,4 @@ Date,Time,Area,Title,Imp.,Actual,Exp.,Prev.
 03 Dec,19:00,USA,Initial Jobless Claims NOV/28,★★,,,
 04 Dec,10:00,India,RBI Interest Rate Decision,★★★,,,5.5%
 04 Dec,19:00,USA,Non Farm Payrolls NOV,★★,,,165K
-,,,,,,Update Time:,19-Nov 19:50
+,,,,,,Update Time:,19-Nov 20:00
